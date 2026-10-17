@@ -1,9 +1,11 @@
 from django.core.management.base import BaseCommand
-from core.models import Colaborador, EPI
+from django.utils import timezone
+from datetime import timedelta
+from core.models import Colaborador, EPI, Emprestimo, ItemEmprestimo
 
 
 class Command(BaseCommand):
-    help = "Popula o banco de dados com registros iniciais de colaboradores e EPIs para a empresa têxtil."
+    help = "Popula o banco de dados com registros iniciais de colaboradores, EPIs e empréstimos para a empresa têxtil."
 
     def handle(self, *args, **options):
         # 1. Colaboradores da Indústria Têxtil
@@ -45,14 +47,13 @@ class Command(BaseCommand):
             },
         ]
 
-        criados_colabs = 0
+        colabs_dict = {}
         for dados in colaboradores_iniciais:
-            colab, created = Colaborador.objects.get_or_create(
+            colab, _ = Colaborador.objects.get_or_create(
                 matricula=dados['matricula'],
                 defaults=dados
             )
-            if created:
-                criados_colabs += 1
+            colabs_dict[dados['matricula']] = colab
 
         # 2. EPIs da Indústria Têxtil
         epis_iniciais = [
@@ -82,18 +83,66 @@ class Command(BaseCommand):
             },
         ]
 
-        criados_epis = 0
+        epis_dict = {}
         for dados in epis_iniciais:
-            epi, created = EPI.objects.get_or_create(
+            epi, _ = EPI.objects.get_or_create(
                 nome=dados['nome'],
                 defaults=dados
             )
-            if created:
-                criados_epis += 1
+            epis_dict[dados['nome']] = epi
+
+        # 3. Empréstimos Iniciais (RF07 e RF09)
+        hoje = timezone.now().date()
+
+        if not Emprestimo.objects.exists():
+            # Empréstimo 1: Ativo (Ana Paula - Protetor Concha)
+            emp1 = Emprestimo.objects.create(
+                colaborador=colabs_dict['TEX-1001'],
+                data_emprestimo=hoje - timedelta(days=15),
+                data_prevista_devolucao=hoje + timedelta(days=75),
+                status='ATIVO',
+                observacoes='Entrega de rotina para operação no galpão de tecelagem.'
+            )
+            ItemEmprestimo.objects.create(
+                emprestimo=emp1,
+                epi=epis_dict['Protetor Auditivo Tipo Concha (Atenuação 24dB)'],
+                quantidade=1
+            )
+
+            # Empréstimo 2: Ativo (Carlos Eduardo - Luva Nitrílica)
+            emp2 = Emprestimo.objects.create(
+                colaborador=colabs_dict['TEX-1002'],
+                data_emprestimo=hoje - timedelta(days=5),
+                data_prevista_devolucao=hoje + timedelta(days=25),
+                status='ATIVO',
+                observacoes='Luva para manuseio de corantes reativos na tinturaria.'
+            )
+            ItemEmprestimo.objects.create(
+                emprestimo=emp2,
+                epi=epis_dict['Luva Nitrílica Resistente a Corantes e Solventes'],
+                quantidade=2
+            )
+
+            # Empréstimo 3: Devolvido (Mariana Costa - Respirador P2)
+            emp3 = Emprestimo.objects.create(
+                colaborador=colabs_dict['TEX-1003'],
+                data_emprestimo=hoje - timedelta(days=40),
+                data_prevista_devolucao=hoje - timedelta(days=10),
+                data_devolucao=hoje - timedelta(days=8),
+                status='DEVOLVIDO',
+                observacoes='Equipamento devolvido higienizado após conclusão da limpeza de cardas.'
+            )
+            ItemEmprestimo.objects.create(
+                emprestimo=emp3,
+                epi=epis_dict['Respirador Semi-Facial com Filtro P2 contra Poeira de Algodão'],
+                quantidade=1
+            )
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Banco de dados atualizado com sucesso! "
-                f"Novos colaboradores: {criados_colabs} | Novos EPIs: {criados_epis}."
+                f"Colaboradores: {Colaborador.objects.count()} | "
+                f"EPIs: {EPI.objects.count()} | "
+                f"Empréstimos: {Emprestimo.objects.count()}."
             )
         )

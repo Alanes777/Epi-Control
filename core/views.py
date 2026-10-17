@@ -1,9 +1,11 @@
+from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db.models import Q
-from .models import Colaborador, EPI, Emprestimo
-from .forms import ColaboradorForm, EPIForm
+from django.utils import timezone
+from .models import Colaborador, EPI, Emprestimo, ItemEmprestimo
+from .forms import ColaboradorForm, EPIForm, EmprestimoForm, DevolucaoForm
 
 
 def home(request):
@@ -252,16 +254,186 @@ def epi_delete(request, pk):
 
 
 # ========================================================
-# MÓDULO DE EMPRÉSTIMOS (EM DESENVOLVIMENTO)
+# MÓDULO DE EMPRÉSTIMOS E DEVOLUÇÕES (RF07 E RF09)
 # ========================================================
 
-def emprestimos_view(request):
+def emprestimo_list(request):
     """
-    Módulo de Empréstimos: página informativa indicando desenvolvimento futuro (RF07, RF08, RF09).
+    Página de Listagem e Consulta de Empréstimos de EPIs (RF07 e RF09).
+    Permite filtrar por colaborador, status e período (data inicial e final).
     """
+    colaborador_id = request.GET.get('colaborador', '').strip()
+    status_filtro = request.GET.get('status', '').strip()
+    data_inicio = request.GET.get('data_inicio', '').strip()
+    data_fim = request.GET.get('data_fim', '').strip()
+    termo_busca = request.GET.get('q', '').strip()
+
+    emprestimos = Emprestimo.objects.select_related('colaborador').prefetch_related('itens__epi').all()
+
+    # Filtro por Colaborador selecionado
+    if colaborador_id:
+        emprestimos = emprestimos.filter(colaborador_id=colaborador_id)
+
+    # Filtro por Busca textual (nome do colaborador ou do EPI)
+    if termo_busca:
+        emprestimos = emprestimos.filter(
+            Q(colaborador__nome__icontains=termo_busca) |
+            Q(colaborador__matricula__icontains=termo_busca) |
+            Q(itens__epi__nome__icontains=termo_busca)
+        ).distinct()
+
+    # Filtro por Status
+    if status_filtro:
+        emprestimos = emprestimos.filter(status=status_filtro)
+
+    # Filtro por Período (RF07: consultar empréstimos por período)
+    if data_inicio:
+        emprestimos = emprestimos.filter(data_emprestimo__gte=data_inicio)
+    if data_fim:
+        emprestimos = emprestimos.filter(data_emprestimo__lte=data_fim)
+
+    # Verifica e atualiza status de atrasados dinamicamente para exibição
+    hoje = timezone.now().date()
+    for emp in emprestimos:
+        if emp.status == 'ATIVO' and emp.data_prevista_devolucao and emp.data_prevista_devolucao < hoje:
+            emp.is_atrasado = True
+        else:
+            emp.is_atrasado = False
+
+    todos_colaboradores = Colaborador.objects.all().order_by('nome')
+
     context = {
-        'modulo': 'Empréstimos e Devoluções de EPIs',
-        'descricao': 'Módulo para registro de retiradas, cautelas, prazos de devolução e histórico de EPIs por colaborador.',
-        'requisito': 'RF07, RF08 e RF09',
+        'emprestimos': emprestimos,
+        'todos_colaboradores': todos_colaboradores,
+        'colaborador_id': colaborador_id,
+        'status_filtro': status_filtro,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'termo_busca': termo_busca,
+        'total_encontrados': emprestimos.count(),
+        'hoje': hoje,
     }
-    return render(request, 'em_desenvolvimento.html', context)
+    return render(request, 'emprestimos/emprestimo_list.html', context)
+
+
+def emprestimo_create(request):
+    """
+    Registro de Novo Empréstimo / Cautela de EPI (RF09).
+    Valida estoque disponível, cria o empréstimo e debita a quantidade do almoxarifado.
+    """
+    if request.method == 'POST':
+        form = EmprestimoForm(request.POST)
+        if form.is_valid():
+            colaborador = form.cleaned_data['colaborador']
+            epi = form.cleaned_data['epi']
+            quantidade = form.cleaned_data['quantidade']
+            data_emprestimo = form.cleaned_data['data_emprestimo']
+            data_prevista_devolucao = form.cleaned_data.get('data_prevista_devolucao')
+            observacoes = form.cleaned_data.get('observacoes', '')
+
+            # 1. Cria o Empréstimo
+            emprestimo = Emprestimo.objects.create(
+                colaborador=colaborador,
+                data_emprestimo=data_emprestimo,
+                data_prevista_devolucao=data_prevista_devolucao,
+                status='ATIVO',
+                observacoes=observacoes
+            )
+
+            # 2. Cria o Item do Empréstimo
+            ItemEmprestimo.objects.create(
+                emprestimo=emprestimo,
+                epi=epi,
+                quantidade=quantidade
+            )
+
+            # 3. Baixa no estoque do almoxarifado
+            epi.quantidade_estoque -= quantidade
+            epi.save()
+
+            messages.success(
+                request,
+                f"Empréstimo registrado com sucesso! Fornecido(s) {quantidade}x '{epi.nome}' para '{colaborador.nome}'."
+            )
+            return redirect('emprestimo_list')
+        else:
+            messages.error(
+                request,
+                "Não foi possível registrar o empréstimo. Por favor, verifique os erros destacados abaixo."
+            )
+    else:
+        form = EmprestimoForm()
+
+    context = {
+        'form': form,
+        'titulo_pagina': 'Registrar Novo Empréstimo de EPI',
+    }
+    return render(request, 'emprestimos/emprestimo_form.html', context)
+
+
+@require_POST
+def emprestimo_devolver(request, pk):
+    """
+    Registro da Devolução de um Empréstimo de EPI (RF09).
+    Atualiza status para 'DEVOLVIDO', data de devolução e reintegra o item ao estoque.
+    """
+    emprestimo = get_object_or_404(Emprestimo, pk=pk)
+
+    if emprestimo.status == 'DEVOLVIDO':
+        messages.warning(request, "Este empréstimo já foi finalizado como devolvido anteriormente.")
+        return redirect('emprestimo_list')
+
+    data_devolucao = request.POST.get('data_devolucao')
+    retornar_estoque = request.POST.get('retornar_ao_estoque') == 'on'
+    obs_devolucao = request.POST.get('observacoes_devolucao', '').strip()
+
+    try:
+        data_efetiva = datetime.strptime(data_devolucao, '%Y-%m-%d').date() if data_devolucao else timezone.now().date()
+    except ValueError:
+        data_efetiva = timezone.now().date()
+
+    # Atualiza o Empréstimo
+    emprestimo.status = 'DEVOLVIDO'
+    emprestimo.data_devolucao = data_efetiva
+    if obs_devolucao:
+        obs_atual = emprestimo.observacoes or ""
+        emprestimo.observacoes = f"{obs_atual}\n[Devolução em {data_efetiva.strftime('%d/%m/%Y')}]: {obs_devolucao}".strip()
+    emprestimo.save()
+
+    # Reintegração das peças ao estoque se solicitado
+    if retornar_estoque:
+        for item in emprestimo.itens.all():
+            epi = item.epi
+            epi.quantidade_estoque += item.quantidade
+            epi.save()
+
+    messages.success(
+        request,
+        f"Devolução do Empréstimo #{emprestimo.id} (Colaborador: {emprestimo.colaborador.nome}) confirmada com sucesso!"
+    )
+    return redirect('emprestimo_list')
+
+
+@require_POST
+def emprestimo_delete(request, pk):
+    """
+    Exclusão de Registro de Empréstimo.
+    Protegida por requisição POST com token CSRF.
+    """
+    emprestimo = get_object_or_404(Emprestimo, pk=pk)
+    colab_nome = emprestimo.colaborador.nome
+
+    try:
+        emprestimo.delete()
+        messages.success(
+            request,
+            f"Registro de empréstimo do colaborador '{colab_nome}' excluído com sucesso!"
+        )
+    except Exception as e:
+        messages.error(
+            request,
+            f"Erro ao excluir o empréstimo: {str(e)}"
+        )
+
+    return redirect('emprestimo_list')
+

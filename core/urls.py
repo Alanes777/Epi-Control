@@ -17,6 +17,9 @@ urlpatterns = [
     path('equipamentos/<int:pk>/editar/', views.epi_update, name='epi_update'),
     path('equipamentos/<int:pk>/excluir/', views.epi_delete, name='epi_delete'),
     
-    # Módulo de Empréstimos (Em desenvolvimento - RF07, RF08, RF09)
-    path('emprestimos/', views.emprestimos_view, name='emprestimos'),
+    # Módulo de Empréstimos e Devoluções (CRUD completo - RF07 e RF09)
+    path('emprestimos/', views.emprestimo_list, name='emprestimo_list'),
+    path('emprestimos/novo/', views.emprestimo_create, name='emprestimo_create'),
+    path('emprestimos/<int:pk>/devolver/', views.emprestimo_devolver, name='emprestimo_devolver'),
+    path('emprestimos/<int:pk>/excluir/', views.emprestimo_delete, name='emprestimo_delete'),
 ]

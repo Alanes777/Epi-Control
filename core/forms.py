@@ -1,5 +1,6 @@
 from django import forms
-from .models import Colaborador, EPI
+from django.utils import timezone
+from .models import Colaborador, EPI, Emprestimo, ItemEmprestimo
 
 
 class ColaboradorForm(forms.ModelForm):
@@ -141,3 +142,107 @@ class EPIForm(forms.ModelForm):
         if qtd is None or qtd < 0:
             raise forms.ValidationError("A quantidade em estoque não pode ser negativa.")
         return qtd
+
+
+class EmprestimoForm(forms.ModelForm):
+    """
+    Formulário para registro de novo Empréstimo / Cautela de EPI (RF07 e RF09).
+    Permite selecionar o colaborador, o equipamento desejado e a quantidade,
+    validando a disponibilidade imediata em estoque.
+    """
+    colaborador = forms.ModelChoiceField(
+        queryset=Colaborador.objects.all().order_by('nome'),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Colaborador",
+        help_text="Selecione o colaborador que receberá o EPI.",
+        empty_label="Selecione o colaborador...",
+        required=True
+    )
+    epi = forms.ModelChoiceField(
+        queryset=EPI.objects.all().order_by('nome'),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Equipamento de Proteção (EPI)",
+        help_text="Selecione o EPI a ser emprestado.",
+        empty_label="Selecione o equipamento...",
+        required=True
+    )
+    quantidade = forms.IntegerField(
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+        label="Quantidade",
+        help_text="Quantidade de peças a fornecer ao colaborador.",
+        required=True
+    )
+
+    class Meta:
+        model = Emprestimo
+        fields = ['colaborador', 'data_emprestimo', 'data_prevista_devolucao', 'observacoes']
+        widgets = {
+            'data_emprestimo': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
+            'data_prevista_devolucao': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Ex: EPI fornecido para substituição de peça danificada no turno da noite...',
+            }),
+        }
+        labels = {
+            'data_emprestimo': 'Data do Empréstimo',
+            'data_prevista_devolucao': 'Previsão de Devolução (opcional)',
+            'observacoes': 'Observações Adicionais',
+        }
+        help_texts = {
+            'data_emprestimo': 'Data em que o EPI foi retirado no departamento.',
+            'data_prevista_devolucao': 'Data limite prevista para a troca ou devolução do item.',
+            'observacoes': 'Campo opcional para anotações do almoxarifado.',
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        epi = cleaned_data.get('epi')
+        quantidade = cleaned_data.get('quantidade')
+
+        if epi and quantidade:
+            if epi.quantidade_estoque < quantidade:
+                self.add_error(
+                    'quantidade',
+                    f"Estoque insuficiente! O EPI '{epi.nome}' possui apenas {epi.quantidade_estoque} unidade(s) disponível(is) no momento."
+                )
+
+        return cleaned_data
+
+
+class DevolucaoForm(forms.Form):
+    """
+    Formulário para registro da devolução de um EPI emprestado.
+    """
+    data_devolucao = forms.DateField(
+        initial=timezone.now,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        label="Data Efetiva da Devolução",
+        help_text="Data em que o colaborador entregou o EPI no departamento de SST.",
+        required=True
+    )
+    retornar_ao_estoque = forms.BooleanField(
+        initial=True,
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        label="Reintegrar peças ao estoque do almoxarifado?",
+        help_text="Marque caso os equipamentos devolvidos estejam higienizados e em perfeitas condições para reuso."
+    )
+    observacoes = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Ex: Equipamento recebido limpo / Descarte por desgaste natural de uso...',
+        }),
+        label="Observações da Devolução",
+        required=False
+    )

@@ -48,9 +48,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'emprestimos' %}active fw-semibold{% endif %}" href="{% url 'emprestimos' %}">
-                            <i class="bi bi-arrow-left-right me-1"></i> Empréstimos
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Em breve</span>
+                        <a class="nav-link {% if 'emprestimo' in request.resolver_match.url_name %}active fw-semibold text-primary{% endif %}" href="{% url 'emprestimo_list' %}">
+                            <i class="bi bi-arrow-left-right me-1"></i> Empréstimos & Devoluções
                         </a>
                     </li>
                 </ul>

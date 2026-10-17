@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}EPI Control — {{ titulo_pagina }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Navegação / Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'emprestimo_list' %}">Empréstimos</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Novo Empréstimo</li>
+            </ol>
+        </nav>
+
+        <!-- Cartão do Formulário -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="bi bi-arrow-left-right text-primary me-2"></i>
+                            {{ titulo_pagina }}
+                        </h5>
+                        <small class="text-muted">
+                            Registre a retirada de EPI por um colaborador com atualização automática do estoque físico.
+                        </small>
+                    </div>
+                    <a href="{% url 'emprestimo_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Listagem
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}
+                                <div><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Campo 1: Colaborador -->
+                    <div class="mb-3">
+                        <label for="{{ form.colaborador.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.colaborador.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.colaborador }}
+                        {% if form.colaborador.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.colaborador.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">{{ form.colaborador.help_text }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <!-- Campo 2: Equipamento (EPI) -->
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.epi.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.epi.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.epi }}
+                            {% if form.epi.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.epi.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.epi.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo 3: Quantidade -->
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.quantidade.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.quantidade.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.quantidade }}
+                            {% if form.quantidade.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.quantidade.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.quantidade.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Campo 4: Data do Empréstimo -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.data_emprestimo.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.data_emprestimo.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.data_emprestimo }}
+                            {% if form.data_emprestimo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.data_emprestimo.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.data_emprestimo.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo 5: Previsão de Devolução -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.data_prevista_devolucao.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.data_prevista_devolucao.label }}
+                            </label>
+                            {{ form.data_prevista_devolucao }}
+                            {% if form.data_prevista_devolucao.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.data_prevista_devolucao.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.data_prevista_devolucao.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Campo 6: Observações -->
+                    <div class="mb-4">
+                        <label for="{{ form.observacoes.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.observacoes.label }}
+                        </label>
+                        {{ form.observacoes }}
+                        {% if form.observacoes.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.observacoes.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">{{ form.observacoes.help_text }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small border-0 bg-info-subtle text-info-emphasis mb-4">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Ao confirmar, o sistema registrará a cautela com status <strong>"Ativo (Em Posse)"</strong> e reduzirá a quantidade informada do estoque disponível do almoxarifado.
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Botões de Ação -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'emprestimo_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar e Voltar
+                        </a>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Confirmar e Registrar Empréstimo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
