@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches e diretórios locais
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+ENV/
+
+# Banco de dados de desenvolvimento local (se desejado versionar ou não)
+# db.sqlite3
+*.log
+
+# Arquivos de IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos estáticos coletados
+staticfiles/
+
+# Legado anterior
+_legado_flask/

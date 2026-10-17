@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}EPI Control — {{ titulo_pagina }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Navegação / Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'colaborador_list' %}">Colaboradores</a></li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    {% if is_edicao %}Editar Colaborador{% else %}Cadastrar Colaborador{% endif %}
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Cartão do Formulário -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="bi {% if is_edicao %}bi-pencil-square text-warning{% else %}bi-person-plus text-primary{% endif %} me-2"></i>
+                            {{ titulo_pagina }}
+                        </h5>
+                        <small class="text-muted">
+                            {% if is_edicao %}
+                                Altere os dados necessários e clique em salvar para atualizar o registro.
+                            {% else %}
+                                Preencha os campos abaixo para registrar um novo colaborador na empresa têxtil.
+                            {% endif %}
+                        </small>
+                    </div>
+                    <a href="{% url 'colaborador_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Listagem
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Mensagem de erro geral do formulário (caso haja erros não associados a um campo específico) -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}
+                                <div><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Campo 1: Nome Completo (Obrigatório) -->
+                    <div class="mb-3">
+                        <label for="{{ form.nome.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.nome.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nome }}
+                        {% if form.nome.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.nome.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">{{ form.nome.help_text }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <!-- Campo 2: Matrícula (Obrigatória e Única) -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.matricula.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.matricula.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.matricula }}
+                            {% if form.matricula.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.matricula.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.matricula.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo 3: Setor (Obrigatório) -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.setor.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.setor.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.setor }}
+                            {% if form.setor.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.setor.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.setor.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Campo 4: Cargo (Opcional) -->
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cargo.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.cargo.label }}
+                            </label>
+                            {{ form.cargo }}
+                            {% if form.cargo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.cargo.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.cargo.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo 5: E-mail (Opcional, com validação de formato) -->
+                        <div class="col-md-6 mb-4">
+                            <label for="{{ form.email.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.email.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text text-muted">{{ form.email.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Botões de Ação -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'colaborador_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar e Voltar
+                        </a>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            {% if is_edicao %}
+                                <i class="bi bi-check2-circle me-1"></i> Salvar Alterações
+                            {% else %}
+                                <i class="bi bi-person-plus-fill me-1"></i> Cadastrar Colaborador
+                            {% endif %}
+                        </button>
+                    </div>
+
+                    {% if not is_edicao %}
+                        <div class="text-muted small text-center mt-3">
+                            <i class="bi bi-info-circle me-1"></i> Após cadastrar com sucesso, você permanecerá nesta tela para cadastrar outros colaboradores.
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2 @@
+# Dependências do Sistema EPI Control
+Django>=5.0,<7.0

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}EPI Control — Página Inicial{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho de Apresentação -->
+<div class="p-4 p-md-5 mb-4 bg-white rounded-3 border shadow-sm">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary me-2">Versão 1.0</span>
+                <span class="text-muted small">Setor Têxtil • Segurança do Trabalho</span>
+            </div>
+            <h1 class="display-6 fw-bold text-dark mb-3">EPI Control</h1>
+            <p class="lead text-secondary mb-4">
+                Sistema desenvolvido para auxiliar uma empresa do setor têxtil na organização dos cadastros de colaboradores e equipamentos de proteção, controle de estoque e acompanhamento de empréstimos e devoluções de EPIs.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'colaborador_list' %}" class="btn btn-primary">
+                    <i class="bi bi-people-fill me-1"></i> Gerenciar Colaboradores
+                </a>
+                <a href="{% url 'colaborador_create' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-person-plus me-1"></i> Cadastrar Colaborador
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 d-none d-lg-block text-center text-muted">
+            <i class="bi bi-shield-fill-check display-1 text-primary opacity-75"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Contextualização e Módulos do Sistema -->
+<div class="row g-4 mb-4">
+    <!-- Módulo 1: Colaboradores (Implementado) -->
+    <div class="col-md-4">
+        <div class="card h-100 border-primary border-top border-top-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Módulo Ativo</span>
+                    <i class="bi bi-people fs-4 text-primary"></i>
+                </div>
+                <h5 class="card-title fw-bold">Colaboradores</h5>
+                <p class="card-text text-muted small">
+                    Cadastro completo de colaboradores com matrícula única, setor, cargo e e-mail. Permite pesquisa, listagem, edição e exclusão segura.
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'colaborador_list' %}" class="btn btn-sm btn-outline-primary">
+                        Listar Colaboradores ({{ total_colaboradores }} cadastrado{{ total_colaboradores|pluralize:"s" }})
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo 2: Equipamentos (Em Desenvolvimento) -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary"><i class="bi bi-cone-striped me-1"></i>Em Desenvolvimento</span>
+                    <i class="bi bi-tools fs-4 text-secondary"></i>
+                </div>
+                <h5 class="card-title fw-bold">Equipamentos (EPIs)</h5>
+                <p class="card-text text-muted small">
+                    Catalogação de equipamentos de proteção (protetores auriculares, respiradores, luvas térmicas), Certificado de Aprovação (C.A.) e saldo de estoque.
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'equipamentos' %}" class="btn btn-sm btn-outline-secondary">
+                        Ver Detalhes do Módulo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo 3: Empréstimos & Devoluções (Em Desenvolvimento) -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary"><i class="bi bi-cone-striped me-1"></i>Em Desenvolvimento</span>
+                    <i class="bi bi-arrow-left-right fs-4 text-secondary"></i>
+                </div>
+                <h5 class="card-title fw-bold">Empréstimos e Devoluções</h5>
+                <p class="card-text text-muted small">
+                    Registro de retiradas e cautelas de EPIs por colaborador, datas de entrega, prazos de devolução e acompanhamento de itens em uso no setor têxtil.
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'emprestimos' %}" class="btn btn-sm btn-outline-secondary">
+                        Ver Detalhes do Módulo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contextualização Acadêmica -->
+<div class="card bg-light border-0">
+    <div class="card-body p-4">
+        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle me-1 text-primary"></i> Sobre este projeto acadêmico</h6>
+        <p class="text-secondary small mb-0">
+            Este sistema foi desenvolvido como projeto prático do curso técnico em Desenvolvimento de Sistemas. O foco desta versão prioritária é a integridade das operações de CRUD do módulo de colaboradores, a validação no servidor com Django ORM e a persistência de dados em banco SQLite.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+/* EPI Control - Estilos Adicionais */
+
+body {
+    background-color: #f8f9fa;
+    color: #212529;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Cor associada à segurança e setor industrial têxtil */
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.brand-badge {
+    background-color: #0d6efd;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+/* Tabelas e cartões padronizados */
+.card {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+}
+
+/* Rodapé */
+footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #ffffff;
+    padding: 1rem 0;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
