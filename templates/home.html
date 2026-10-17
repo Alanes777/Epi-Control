@@ -55,13 +55,13 @@
         </div>
     </div>
 
-    <!-- Módulo 2: Equipamentos (Em Desenvolvimento) -->
+    <!-- Módulo 2: Equipamentos (Implementado) -->
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card h-100 border-primary border-top border-top-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="badge bg-secondary"><i class="bi bi-cone-striped me-1"></i>Em Desenvolvimento</span>
-                    <i class="bi bi-tools fs-4 text-secondary"></i>
+                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Módulo Ativo</span>
+                    <i class="bi bi-tools fs-4 text-primary"></i>
                 </div>
                 <h5 class="card-title fw-bold">Equipamentos (EPIs)</h5>
                 <p class="card-text text-muted small">
@@ -70,8 +70,8 @@
             </div>
             <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                 <div class="d-grid gap-2">
-                    <a href="{% url 'equipamentos' %}" class="btn btn-sm btn-outline-secondary">
-                        Ver Detalhes do Módulo
+                    <a href="{% url 'epi_list' %}" class="btn btn-sm btn-outline-primary">
+                        Listar Equipamentos ({{ total_epis }} cadastrado{{ total_epis|pluralize:"s" }})
                     </a>
                 </div>
             </div>

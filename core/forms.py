@@ -1,5 +1,5 @@
 from django import forms
-from .models import Colaborador
+from .models import Colaborador, EPI
 
 
 class ColaboradorForm(forms.ModelForm):
@@ -53,15 +53,10 @@ class ColaboradorForm(forms.ModelForm):
         }
 
     def clean_matricula(self):
-        """
-        Valida se a matrícula informada já está cadastrada para outro colaborador.
-        Permite manter a mesma matrícula caso seja a edição do próprio registro.
-        """
         matricula = self.cleaned_data.get('matricula', '').strip()
         if not matricula:
             raise forms.ValidationError("A matrícula é obrigatória.")
 
-        # Busca por outros colaboradores com a mesma matrícula
         query = Colaborador.objects.filter(matricula__iexact=matricula)
         if self.instance and self.instance.pk:
             query = query.exclude(pk=self.instance.pk)
@@ -84,3 +79,65 @@ class ColaboradorForm(forms.ModelForm):
         if not setor:
             raise forms.ValidationError("O setor é obrigatório.")
         return setor
+
+
+class EPIForm(forms.ModelForm):
+    """
+    Formulário para cadastro e edição de Equipamentos de Proteção Individual (RF06).
+    """
+    class Meta:
+        model = EPI
+        fields = ['nome', 'descricao', 'certificado_aprovacao', 'quantidade_estoque', 'validade']
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Protetor Auditivo Tipo Concha',
+                'required': True,
+                'autocomplete': 'off',
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Ex: Proteção do sistema auditivo contra ruídos industriais intensos no setor de teares...',
+            }),
+            'certificado_aprovacao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: 5745 (opcional)',
+            }),
+            'quantidade_estoque': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'placeholder': '0',
+                'required': True,
+            }),
+            'validade': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
+        }
+        labels = {
+            'nome': 'Nome do Equipamento',
+            'descricao': 'Descrição / Finalidade',
+            'certificado_aprovacao': 'Certificado de Aprovação (C.A.)',
+            'quantidade_estoque': 'Quantidade em Estoque',
+            'validade': 'Data de Validade (Equipamento / C.A.)',
+        }
+        help_texts = {
+            'nome': 'Campo obrigatório. Identificação do EPI.',
+            'descricao': 'Campo opcional. Instruções ou detalhamento técnico.',
+            'certificado_aprovacao': 'Campo opcional. Número do C.A. emitido pelo Ministério do Trabalho.',
+            'quantidade_estoque': 'Campo obrigatório. Quantidade física disponível no almoxarifado.',
+            'validade': 'Campo opcional. Data de expiração do lote ou do C.A.',
+        }
+
+    def clean_nome(self):
+        nome = self.cleaned_data.get('nome', '').strip()
+        if not nome:
+            raise forms.ValidationError("O nome do equipamento é obrigatório.")
+        return nome
+
+    def clean_quantidade_estoque(self):
+        qtd = self.cleaned_data.get('quantidade_estoque')
+        if qtd is None or qtd < 0:
+            raise forms.ValidationError("A quantidade em estoque não pode ser negativa.")
+        return qtd

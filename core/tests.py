@@ -148,9 +148,90 @@ class ColaboradorCRUDTest(TestCase):
             reverse('colaborador_list'),
             reverse('colaborador_create'),
             reverse('colaborador_update', args=[self.colab2.pk]),
-            reverse('equipamentos'),
+            reverse('epi_list'),
+            reverse('epi_create'),
             reverse('emprestimos'),
         ]
         for url in urls:
             res = self.client.get(url)
             self.assertEqual(res.status_code, 200, f"Falha ao carregar a página: {url}")
+
+
+class EPICRUDTest(TestCase):
+    """
+    Testes automatizados cobrindo o módulo de Equipamentos (RF06):
+    - Cadastro válido
+    - Validação de estoque negativo
+    - Pesquisa por nome e por C.A.
+    - Edição de EPI
+    - Exclusão via POST e bloqueio via GET
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.epi1 = EPI.objects.create(
+            nome="Protetor Auditivo Concha",
+            certificado_aprovacao="5745",
+            quantidade_estoque=30,
+            descricao="Proteção auditiva para operadores de teares."
+        )
+
+    def test_cadastro_valido_epi(self):
+        dados = {
+            'nome': 'Máscara Facial P2',
+            'certificado_aprovacao': '4115',
+            'quantidade_estoque': 50,
+            'descricao': 'Proteção contra poeira têxtil.',
+        }
+        res = self.client.post(reverse('epi_create'), dados, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(EPI.objects.filter(nome='Máscara Facial P2').exists())
+        self.assertContains(res, "cadastrado com sucesso")
+
+    def test_estoque_negativo_rejeitado(self):
+        dados = {
+            'nome': 'Luva Nitrílica',
+            'quantidade_estoque': -5,
+        }
+        res = self.client.post(reverse('epi_create'), dados)
+        self.assertEqual(res.status_code, 200)
+        form = res.context['form']
+        self.assertIn('quantidade_estoque', form.errors)
+
+    def test_pesquisa_epi_por_nome_e_ca(self):
+        # Busca por nome
+        res1 = self.client.get(reverse('epi_list') + '?q=Concha')
+        self.assertEqual(res1.status_code, 200)
+        self.assertContains(res1, "Protetor Auditivo Concha")
+
+        # Busca por C.A.
+        res2 = self.client.get(reverse('epi_list') + '?q=5745')
+        self.assertEqual(res2.status_code, 200)
+        self.assertContains(res2, "C.A. 5745")
+
+    def test_edicao_epi(self):
+        dados = {
+            'nome': 'Protetor Auditivo Concha Plus',
+            'certificado_aprovacao': '5745',
+            'quantidade_estoque': 45,
+            'descricao': 'Versão atualizada.',
+        }
+        res = self.client.post(reverse('epi_update', args=[self.epi1.pk]), dados, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.epi1.refresh_from_db()
+        self.assertEqual(self.epi1.nome, 'Protetor Auditivo Concha Plus')
+        self.assertEqual(self.epi1.quantidade_estoque, 45)
+        self.assertContains(res, "atualizado com sucesso")
+
+    def test_exclusao_epi_post_e_get(self):
+        # GET deve ser bloqueado com 405
+        res_get = self.client.get(reverse('epi_delete', args=[self.epi1.pk]))
+        self.assertEqual(res_get.status_code, 405)
+        self.assertTrue(EPI.objects.filter(pk=self.epi1.pk).exists())
+
+        # POST deve excluir com sucesso
+        res_post = self.client.post(reverse('epi_delete', args=[self.epi1.pk]), follow=True)
+        self.assertEqual(res_post.status_code, 200)
+        self.assertFalse(EPI.objects.filter(pk=self.epi1.pk).exists())
+        self.assertContains(res_post, "excluído com sucesso")
+

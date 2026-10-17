@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}EPI Control — Listagem de Equipamentos (EPIs){% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da Página e Botão de Ação -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+        <h2 class="h3 fw-bold text-dark mb-1">
+            <i class="bi bi-tools text-primary me-2"></i>Equipamentos (EPIs)
+        </h2>
+        <p class="text-muted small mb-0">
+            Controle de inventário, estoque disponível e Certificados de Aprovação (C.A.) dos EPIs da empresa têxtil.
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'epi_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle-fill me-1"></i> Cadastrar Novo Equipamento
+        </a>
+    </div>
+</div>
+
+<!-- Card da Barra de Pesquisa -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <form method="get" action="{% url 'epi_list' %}" class="row g-2 align-items-center">
+            <div class="col-md-9 col-sm-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-white text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           name="q"
+                           value="{{ termo_busca }}"
+                           class="form-control"
+                           placeholder="Pesquisar por nome do EPI ou número do C.A...."
+                           aria-label="Pesquisar EPI">
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-search me-1"></i> Pesquisar
+                </button>
+                {% if termo_busca %}
+                    <a href="{% url 'epi_list' %}" class="btn btn-outline-secondary" title="Limpar pesquisa e exibir todos">
+                        <i class="bi bi-x-circle me-1"></i> Limpar
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if termo_busca %}
+            <div class="mt-2 small text-muted">
+                <i class="bi bi-funnel-fill text-primary me-1"></i>
+                Filtrando por: <strong>"{{ termo_busca }}"</strong> — Encontrado{{ total_encontrados|pluralize:"s" }} <strong>{{ total_encontrados }}</strong> equipamento{{ total_encontrados|pluralize:"s" }}.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabela de Listagem -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <span class="fw-bold text-dark">
+            <i class="bi bi-table me-1 text-secondary"></i> Catálogo de Equipamentos em Estoque
+        </span>
+        <span class="badge bg-light text-dark border">
+            Total: {{ epis|length }}
+        </span>
+    </div>
+
+    <div class="table-responsive">
+        {% if epis %}
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 30%;">Nome do Equipamento</th>
+                        <th scope="col" style="width: 15%;">C.A. (MTE)</th>
+                        <th scope="col" style="width: 15%;" class="text-center">Estoque Físico</th>
+                        <th scope="col" style="width: 15%;">Validade</th>
+                        <th scope="col" style="width: 15%;">Descrição / Uso</th>
+                        <th scope="col" style="width: 10%;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for epi in epis %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ epi.nome }}</strong>
+                            </td>
+                            <td>
+                                {% if epi.certificado_aprovacao %}
+                                    <span class="badge bg-light text-dark border font-monospace">
+                                        C.A. {{ epi.certificado_aprovacao }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted fst-italic small">Não informado</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if epi.quantidade_estoque > 0 %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-6">
+                                        {{ epi.quantidade_estoque }} un.
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                        Esgotado (0)
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if epi.validade %}
+                                    <span class="small text-secondary">
+                                        <i class="bi bi-calendar-event me-1"></i>{{ epi.validade|date:"d/m/Y" }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted fst-italic small">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if epi.descricao %}
+                                    <span class="small text-muted d-inline-block text-truncate" style="max-width: 180px;" title="{{ epi.descricao }}">
+                                        {{ epi.descricao }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted fst-italic small">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Ações do EPI">
+                                    <a href="{% url 'epi_update' epi.pk %}"
+                                       class="btn btn-outline-primary"
+                                       title="Editar equipamento {{ epi.nome }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <button type="button"
+                                            class="btn btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalExcluirEpi{{ epi.pk }}"
+                                            title="Excluir equipamento {{ epi.nome }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Modal de Confirmação de Exclusão (Bootstrap 5) -->
+                                <div class="modal fade text-start"
+                                     id="modalExcluirEpi{{ epi.pk }}"
+                                     tabindex="-1"
+                                     aria-labelledby="modalLabelEpi{{ epi.pk }}"
+                                     aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title h6" id="modalLabelEpi{{ epi.pk }}">
+                                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                                    Confirmar Exclusão de Equipamento
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <p class="mb-2">Você tem certeza de que deseja excluir o seguinte EPI do almoxarifado?</p>
+                                                
+                                                <div class="card bg-light border-0 p-3 mb-3">
+                                                    <div><strong>Equipamento:</strong> {{ epi.nome }}</div>
+                                                    {% if epi.certificado_aprovacao %}<div><strong>C.A.:</strong> {{ epi.certificado_aprovacao }}</div>{% endif %}
+                                                    <div><strong>Estoque Atual:</strong> {{ epi.quantidade_estoque }} unidades</div>
+                                                </div>
+
+                                                <p class="text-danger small mb-0">
+                                                    <i class="bi bi-info-circle me-1"></i> Esta operação removerá este EPI do banco de dados.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer bg-light">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                                                </button>
+                                                
+                                                <form method="post" action="{% url 'epi_delete' epi.pk %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="bi bi-trash-fill me-1"></i> Confirmar Exclusão
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Fim do Modal -->
+
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="p-5 text-center text-muted">
+                <i class="bi bi-tools display-4 text-secondary mb-3 d-block opacity-50"></i>
+                {% if termo_busca %}
+                    <h5 class="text-dark fw-bold">Nenhum equipamento encontrado</h5>
+                    <p class="small mb-3">
+                        Não encontramos nenhum EPI correspondente a <strong>"{{ termo_busca }}"</strong>.
+                    </p>
+                    <a href="{% url 'epi_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Ver todos os equipamentos
+                    </a>
+                {% else %}
+                    <h5 class="text-dark fw-bold">Nenhum equipamento cadastrado ainda</h5>
+                    <p class="small mb-3">Cadastre os EPIs utilizados pelos operadores da indústria têxtil.</p>
+                    <a href="{% url 'epi_create' %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Cadastrar primeiro EPI
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

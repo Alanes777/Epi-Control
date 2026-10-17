@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 from .models import Colaborador, EPI, Emprestimo
-from .forms import ColaboradorForm
+from .forms import ColaboradorForm, EPIForm
 
 
 def home(request):
@@ -23,6 +23,10 @@ def home(request):
     return render(request, 'home.html', context)
 
 
+# ========================================================
+# MÓDULO DE COLABORADORES (CRUD COMPLETO - RF01 A RF05)
+# ========================================================
+
 def colaborador_list(request):
     """
     Página 3 — Pesquisa e Listagem de Colaboradores.
@@ -31,7 +35,6 @@ def colaborador_list(request):
     termo_busca = request.GET.get('q', '').strip()
 
     if termo_busca:
-        # Pesquisa persistida no banco de dados por parte do nome
         colaboradores = Colaborador.objects.filter(nome__icontains=termo_busca)
     else:
         colaboradores = Colaborador.objects.all()
@@ -58,7 +61,6 @@ def colaborador_create(request):
                 request,
                 f"Colaborador '{colaborador.nome}' (Matrícula: {colaborador.matricula}) cadastrado com sucesso!"
             )
-            # Permanece na página de cadastro com formulário limpo para cadastrar outro
             return redirect('colaborador_create')
         else:
             messages.error(
@@ -134,17 +136,124 @@ def colaborador_delete(request, pk):
     return redirect('colaborador_list')
 
 
-def equipamentos_view(request):
-    """
-    Módulo de Equipamentos (EPIs): página informativa indicando desenvolvimento futuro (RF06).
-    """
-    context = {
-        'modulo': 'Equipamentos de Proteção Individual (EPIs)',
-        'descricao': 'Módulo para controle de estoque, catalogação de EPIs e gestão de Certificados de Aprovação (C.A.).',
-        'requisito': 'RF06',
-    }
-    return render(request, 'em_desenvolvimento.html', context)
+# ========================================================
+# MÓDULO DE EQUIPAMENTOS (EPIs - RF06)
+# ========================================================
 
+def epi_list(request):
+    """
+    Pesquisa e Listagem de Equipamentos de Proteção Individual (RF06).
+    Permite consultar por nome ou número do C.A. no banco de dados.
+    """
+    termo_busca = request.GET.get('q', '').strip()
+
+    if termo_busca:
+        epis = EPI.objects.filter(
+            Q(nome__icontains=termo_busca) |
+            Q(certificado_aprovacao__icontains=termo_busca) |
+            Q(descricao__icontains=termo_busca)
+        )
+    else:
+        epis = EPI.objects.all()
+
+    context = {
+        'epis': epis,
+        'termo_busca': termo_busca,
+        'total_encontrados': epis.count(),
+    }
+    return render(request, 'equipamentos/epi_list.html', context)
+
+
+def epi_create(request):
+    """
+    Cadastro de Equipamentos de Proteção Individual (RF06).
+    Após o cadastro, permanece na tela para agilizar múltiplos cadastros no almoxarifado.
+    """
+    if request.method == 'POST':
+        form = EPIForm(request.POST)
+        if form.is_valid():
+            epi = form.save()
+            ca = f" (C.A. {epi.certificado_aprovacao})" if epi.certificado_aprovacao else ""
+            messages.success(
+                request,
+                f"Equipamento '{epi.nome}'{ca} cadastrado com sucesso!"
+            )
+            return redirect('epi_create')
+        else:
+            messages.error(
+                request,
+                "Não foi possível cadastrar o equipamento. Verifique os campos abaixo."
+            )
+    else:
+        form = EPIForm()
+
+    context = {
+        'form': form,
+        'titulo_pagina': 'Cadastrar Novo Equipamento (EPI)',
+        'is_edicao': False,
+    }
+    return render(request, 'equipamentos/epi_form.html', context)
+
+
+def epi_update(request, pk):
+    """
+    Edição de Equipamentos de Proteção Individual (RF06).
+    """
+    epi = get_object_or_404(EPI, pk=pk)
+
+    if request.method == 'POST':
+        form = EPIForm(request.POST, instance=epi)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Equipamento '{epi.nome}' atualizado com sucesso!"
+            )
+            return redirect('epi_list')
+        else:
+            messages.error(
+                request,
+                "Não foi possível salvar as alterações do equipamento. Corrija os erros destacados."
+            )
+    else:
+        form = EPIForm(instance=epi)
+
+    context = {
+        'form': form,
+        'epi': epi,
+        'titulo_pagina': f'Editar Equipamento: {epi.nome}',
+        'is_edicao': True,
+    }
+    return render(request, 'equipamentos/epi_form.html', context)
+
+
+@require_POST
+def epi_delete(request, pk):
+    """
+    Exclusão de Equipamento (EPI).
+    Protegida por requisição POST com token CSRF.
+    """
+    epi = get_object_or_404(EPI, pk=pk)
+    nome = epi.nome
+
+    try:
+        epi.delete()
+        messages.success(
+            request,
+            f"Equipamento '{nome}' foi excluído com sucesso!"
+        )
+    except Exception as e:
+        messages.error(
+            request,
+            f"Erro ao excluir o equipamento '{nome}': {str(e)}"
+        )
+
+    return redirect('epi_list')
+
+
+# ========================================================
+# MÓDULO DE EMPRÉSTIMOS (EM DESENVOLVIMENTO)
+# ========================================================
 
 def emprestimos_view(request):
     """
