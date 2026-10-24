@@ -1,58 +1,140 @@
-/* EPI Control - Estilos Adicionais */
+/* EPI Control — Estilos Customizados e Layout com Menu Lateral (Sidebar) */
+
+:root {
+    --sidebar-width: 270px;
+    --primary-color: #0d6efd;
+    --dark-bg: #1e293b;
+    --darker-bg: #0f172a;
+}
 
 body {
-    background-color: #f8f9fa;
-    color: #212529;
+    background-color: #f1f5f9;
+    color: #1e293b;
     min-height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Layout em duas colunas (Sidebar + Main) */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Menu Lateral (Sidebar) */
+.app-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--dark-bg);
+    color: #f8fafc;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    border-right: 1px solid #334155;
+    z-index: 1040;
 }
 
-main {
-    flex: 1;
+@media (min-width: 992px) {
+    .app-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+    }
 }
 
-/* Cor associada à segurança e setor industrial têxtil */
-.navbar-brand {
-    font-weight: 700;
-    letter-spacing: -0.5px;
+/* Perfil do Usuário Logado (Exibição Estática) */
+.user-profile-box {
+    background-color: var(--darker-bg);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 12px 14px;
+    border: 1px solid #334155;
 }
 
-.brand-badge {
-    background-color: #0d6efd;
+.user-avatar-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #3b82f6;
+}
+
+/* Links da Sidebar */
+.sidebar-nav .nav-link {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin: 2px 12px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar-nav .nav-link:hover {
     color: #ffffff;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-left: 6px;
+    background-color: #334155;
 }
 
-/* Tabelas e cartões padronizados */
+.sidebar-nav .nav-link.active {
+    color: #ffffff;
+    background-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.sidebar-heading {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #94a3b8;
+    padding: 12px 24px 4px;
+    font-weight: 700;
+}
+
+/* Área de Conteúdo Principal */
+.app-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.top-bar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 24px;
+}
+
+.main-body {
+    flex: 1;
+    padding: 24px;
+}
+
+/* Cartões e Tabelas */
 .card {
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
     background-color: #ffffff;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid #e2e8f0;
     font-weight: 600;
 }
 
 .table th {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #495057;
+    color: #64748b;
+    background-color: #f8fafc;
 }
 
 /* Rodapé */
-footer {
-    border-top: 1px solid #dee2e6;
+.app-footer {
+    border-top: 1px solid #e2e8f0;
     background-color: #ffffff;
-    padding: 1rem 0;
-    font-size: 0.875rem;
-    color: #6c757d;
+    padding: 12px 24px;
+    font-size: 0.825rem;
+    color: #64748b;
 }

@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class Colaborador(models.Model):
     """
-    Entidade Colaborador: representa os funcionários da empresa têxtil
+    Entidade Colaborador: representa os operários e funcionários da empresa de construção civil
     que utilizam Equipamentos de Proteção Individual (EPIs).
     """
     nome = models.CharField(
@@ -17,19 +17,19 @@ class Colaborador(models.Model):
         max_length=30,
         unique=True,
         verbose_name="Matrícula",
-        help_text="Matrícula funcional única do colaborador."
+        help_text="Matrícula funcional única do colaborador na construtora."
     )
     setor = models.CharField(
         max_length=100,
         verbose_name="Setor",
-        help_text="Setor ou departamento onde o colaborador atua (ex: Tecelagem, Fiação, Tinturaria)."
+        help_text="Frente de trabalho ou setor (ex: Canteiro de Obras, Alvenaria, Armação, Instalações, Acabamento)."
     )
     cargo = models.CharField(
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Cargo",
-        help_text="Função ou cargo exercido (opcional)."
+        help_text="Função exercida (ex: Pedreiro, Carpinteiro, Armador, Eletricista, Servente)."
     )
     email = models.EmailField(
         blank=True,
@@ -51,8 +51,7 @@ class Colaborador(models.Model):
 
 class EPI(models.Model):
     """
-    Entidade EPI: representa os Equipamentos de Proteção Individual.
-    Estrutura preparada para expansão futura do módulo de equipamentos (RF06).
+    Entidade EPI: representa os Equipamentos de Proteção Individual da construtora.
     """
     nome = models.CharField(max_length=150, verbose_name="Nome do Equipamento")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
@@ -80,13 +79,20 @@ class EPI(models.Model):
 
 class Emprestimo(models.Model):
     """
-    Entidade Empréstimo: registra a cautela/retirada e devolução de EPIs.
-    Estrutura preparada para expansão futura do módulo de empréstimos (RF07 e RF09).
+    Entidade Empréstimo: controla a cautela, entrega definitiva e devolução de EPIs.
+    Status conforme especificação:
+    - Emprestado: entrega temporária para devolução posterior.
+    - Fornecido: entrega definitiva permanente (não precisará devolver, ex: uniformes).
+    - Devolvido: colaborador já retornou o EPI.
+    - Danificado: retornado com defeitos ou danos, passará por manutenção.
+    - Perdido: colaborador não consegue devolver por motivo de extravio.
     """
     STATUS_CHOICES = [
-        ('ATIVO', 'Ativo (Em posse do colaborador)'),
+        ('EMPRESTADO', 'Emprestado'),
+        ('FORNECIDO', 'Fornecido'),
         ('DEVOLVIDO', 'Devolvido'),
-        ('ATRASADO', 'Atrasado'),
+        ('DANIFICADO', 'Danificado'),
+        ('PERDIDO', 'Perdido'),
     ]
 
     colaborador = models.ForeignKey(
@@ -94,6 +100,18 @@ class Emprestimo(models.Model):
         on_delete=models.PROTECT,
         related_name='emprestimos',
         verbose_name="Colaborador"
+    )
+    epi = models.ForeignKey(
+        EPI,
+        on_delete=models.PROTECT,
+        related_name='emprestimos',
+        verbose_name="Equipamento (EPI)",
+        null=True,
+        blank=True
+    )
+    quantidade = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Quantidade"
     )
     usuario_responsavel = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -103,31 +121,52 @@ class Emprestimo(models.Model):
         related_name='emprestimos_registrados',
         verbose_name="Usuário Responsável (SST)"
     )
-    data_emprestimo = models.DateField(default=timezone.now, verbose_name="Data do Empréstimo")
-    data_prevista_devolucao = models.DateField(blank=True, null=True, verbose_name="Previsão de Devolução")
-    data_devolucao = models.DateField(blank=True, null=True, verbose_name="Data Real da Devolução")
+    data_emprestimo = models.DateField(
+        default=timezone.now,
+        verbose_name="Data de Entrega do Equipamento"
+    )
+    data_prevista_devolucao = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Data Prevista para Devolução"
+    )
+    data_devolucao = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Data Efetiva da Devolução"
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='ATIVO',
-        verbose_name="Status do Empréstimo"
+        default='EMPRESTADO',
+        verbose_name="Status do Equipamento"
     )
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações Gerais"
+    )
+    observacao_devolucao = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observação na Devolução"
+    )
     criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
     class Meta:
-        verbose_name = "Empréstimo"
-        verbose_name_plural = "Empréstimos"
-        ordering = ['-data_emprestimo']
+        verbose_name = "Controle de EPI / Empréstimo"
+        verbose_name_plural = "Controles de EPIs / Empréstimos"
+        ordering = ['-data_emprestimo', '-id']
 
     def __str__(self):
-        return f"Empréstimo #{self.id} - {self.colaborador.nome} ({self.get_status_display()})"
+        nome_epi = self.epi.nome if self.epi else "EPI"
+        return f"Controle #{self.id} - {self.colaborador.nome} | {nome_epi} ({self.get_status_display()})"
 
 
 class ItemEmprestimo(models.Model):
     """
-    Entidade ItemEmprestimo: relaciona os EPIs fornecidos em um determinado empréstimo.
-    Permite que um mesmo empréstimo contenha múltiplos itens (relacionamento 1:N).
+    Entidade ItemEmprestimo: relacionamento de itens vinculados para compatibilidade com cautelas compostas.
     """
     emprestimo = models.ForeignKey(
         Emprestimo,

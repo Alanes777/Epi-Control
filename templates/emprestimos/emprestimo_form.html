@@ -4,38 +4,38 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
 
         <!-- Navegação / Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
+            <ol class="breadcrumb small">
                 <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'emprestimo_list' %}">Empréstimos</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'emprestimo_list' %}">Controle de EPI</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Novo Empréstimo</li>
             </ol>
         </nav>
 
-        <!-- Cartão do Formulário -->
+        <!-- Cartão do Formulário de Cadastro de Empréstimo -->
         <div class="card shadow-sm">
             <div class="card-header bg-white py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0 fw-bold text-dark">
-                            <i class="bi bi-arrow-left-right text-primary me-2"></i>
+                            <i class="bi bi-clipboard-plus text-primary me-2"></i>
                             {{ titulo_pagina }}
                         </h5>
-                        <small class="text-muted">
-                            Registre a retirada de EPI por um colaborador com atualização automática do estoque físico.
+                        <small class="text-secondary">
+                            Forneça os dados da cautela de EPI. O estoque no almoxarifado será atualizado automaticamente.
                         </small>
                     </div>
                     <a href="{% url 'emprestimo_list' %}" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-arrow-left me-1"></i> Listagem
+                        <i class="bi bi-arrow-left me-1"></i> Ir para Listagem
                     </a>
                 </div>
             </div>
 
             <div class="card-body p-4">
-                <form method="post" novalidate>
+                <form method="post" novalidate id="formNovoEmprestimo">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -46,7 +46,7 @@
                         </div>
                     {% endif %}
 
-                    <!-- Campo 1: Colaborador -->
+                    <!-- Campo 1: Colaborador da Construtora -->
                     <div class="mb-3">
                         <label for="{{ form.colaborador.id_for_label }}" class="form-label fw-semibold">
                             {{ form.colaborador.label }} <span class="text-danger">*</span>
@@ -100,7 +100,7 @@
                     </div>
 
                     <div class="row">
-                        <!-- Campo 4: Data do Empréstimo -->
+                        <!-- Campo 4: Data de Entrega do Equipamento -->
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.data_emprestimo.id_for_label }}" class="form-label fw-semibold">
                                 {{ form.data_emprestimo.label }} <span class="text-danger">*</span>
@@ -117,10 +117,10 @@
                             {% endif %}
                         </div>
 
-                        <!-- Campo 5: Previsão de Devolução -->
-                        <div class="col-md-6 mb-3">
+                        <!-- Campo 5: Data Prevista para Devolução -->
+                        <div class="col-md-6 mb-3" id="campo_data_prevista">
                             <label for="{{ form.data_prevista_devolucao.id_for_label }}" class="form-label fw-semibold">
-                                {{ form.data_prevista_devolucao.label }}
+                                {{ form.data_prevista_devolucao.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.data_prevista_devolucao }}
                             {% if form.data_prevista_devolucao.errors %}
@@ -135,7 +135,27 @@
                         </div>
                     </div>
 
-                    <!-- Campo 6: Observações -->
+                    <!-- Campo 6: Status do Equipamento no Cadastro -->
+                    <div class="mb-3">
+                        <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.status.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.status.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>Regra de Negócio:</strong> Conforme a especificação, os status <em>Devolvido</em>, <em>Danificado</em> e <em>Perdido</em> são ocultados no momento do cadastro e só podem ser selecionados quando o item for editado/atualizado.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo 7: Observações Gerais -->
                     <div class="mb-4">
                         <label for="{{ form.observacoes.id_for_label }}" class="form-label fw-semibold">
                             {{ form.observacoes.label }}
@@ -152,9 +172,9 @@
                         {% endif %}
                     </div>
 
-                    <div class="alert alert-info py-2 px-3 small border-0 bg-info-subtle text-info-emphasis mb-4">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Ao confirmar, o sistema registrará a cautela com status <strong>"Ativo (Em Posse)"</strong> e reduzirá a quantidade informada do estoque disponível do almoxarifado.
+                    <div class="alert alert-light border py-2 px-3 small text-secondary mb-4">
+                        <i class="bi bi-check2-circle text-success me-1"></i>
+                        Após clicar em salvar, o sistema cadastrará o empréstimo, abaterá as peças do estoque físico e permanecerá nesta tela permitindo novos cadastros para a construtora.
                     </div>
 
                     <hr class="my-3">
@@ -166,7 +186,7 @@
                         </a>
 
                         <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check2-circle me-1"></i> Confirmar e Registrar Empréstimo
+                            <i class="bi bi-check2-circle me-1"></i> Registrar Empréstimo
                         </button>
                     </div>
                 </form>

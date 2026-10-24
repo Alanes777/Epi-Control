@@ -1,9 +1,9 @@
 # 🦺 EPI Control — Sistema de Gerenciamento de EPIs
 
-Sistema web completo desenvolvido para o controle, inventário, catalogação e acompanhamento de **Empréstimos e Devoluções de Equipamentos de Proteção Individual (EPIs)** em uma empresa do setor têxtil.
+Sistema web completo desenvolvido para o controle, inventário, catalogação e acompanhamento de **Empréstimos e Devoluções de Equipamentos de Proteção Individual (EPIs)** para o setor de **Construção Civil** e Saúde e Segurança do Trabalho (SST).
 
 > **Projeto Acadêmico** — Curso Técnico em Desenvolvimento de Sistemas  
-> **Foco do Projeto:** Funcionamento correto das funcionalidades, validação no servidor, organização do código no padrão MVT do Django e persistência de dados em banco relacional SQLite.
+> **Foco do Projeto:** Funcionamento correto das funcionalidades, validação rigorosa no servidor, organização do código no padrão MVT do Django e persistência de dados em banco relacional SQLite.
 
 ---
 
@@ -20,14 +20,16 @@ Preencha os dados dos integrantes da equipe para entrega da atividade:
 
 ---
 
-## 🎯 Contextualização e Objetivo do Sistema
+## 🎯 Contextualização e Desafio do Sistema
 
-Durante uma auditoria interna em uma indústria têxtil, foram identificadas falhas operacionais: alguns colaboradores esqueciam seus EPIs em casa ou deixavam de retirá-los no departamento de Saúde e Segurança do Trabalho (SST).
+Uma empresa de construção civil da região identificou a necessidade de melhorar a gestão dos equipamentos de proteção individual (EPIs) utilizados pelos colaboradores nas obras. Em auditoria interna, observou-se que colaboradores esqueciam seus EPIs em casa ou não os retiravam com o setor de SST, gerando riscos e não conformidades com as normas regulamentadoras (NR-06, NR-18 e NR-35).
 
-O **EPI Control** centraliza:
-1. O cadastro e histórico dos colaboradores autorizados da fábrica.
-2. O inventário e estoque dos equipamentos de proteção com controle de Certificado de Aprovação (C.A.).
-3. O registro em tempo real de retiradas/cautelas e devoluções, com abatimento e reintegração automática ao estoque físico e alertas visuais de devoluções em atraso.
+O **EPI Control** foi desenvolvido por alunos do curso de Desenvolvimento de Sistemas para solucionar esse desafio, assegurando um ambiente de trabalho mais seguro e em total conformidade com a legislação trabalhista:
+
+1. **Tela Base / Layout com Menu Lateral:** Navegação ágil por sidebar com identificação do usuário logado (perfil estático do Técnico em SST Carlos R. Mendes).
+2. **Cadastro e Gestão de Colaboradores:** Controle de operários por frente de trabalho (alvenaria, estruturas, armação, elétrica) com validação de matrícula única.
+3. **Catálogo e Estoque de EPIs:** Gestão de equipamentos com número de Certificado de Aprovação (C.A.), controle quantitativo no almoxarifado e validade.
+4. **Controle de EPI / Cautelas e Devoluções:** Ciclo completo de vida dos equipamentos (Emprestado, Fornecido, Devolvido, Danificado, Perdido), validação de devolução futura e filtros combinados do tipo **AND**.
 
 ---
 
@@ -35,28 +37,50 @@ O **EPI Control** centraliza:
 
 - **Backend:** Python 3.13 e framework **Django 6** (arquitetura Model-View-Template).
 - **Banco de Dados:** **SQLite**, integrado nativamente com o ORM do Django.
-- **Frontend:** HTML5 semântico, CSS3 e **Bootstrap 5** (via CDN), além de ícones do **Bootstrap Icons**.
+- **Frontend:** HTML5 semântico, CSS3 personalizado e **Bootstrap 5** (via CDN), além de ícones do **Bootstrap Icons**.
 - **Versionamento:** **Git** estruturado e publicado no GitHub: [https://github.com/Alanes777/Epi-Control](https://github.com/Alanes777/Epi-Control).
 - **Containerização:** **Dockerfile** funcional com automação de migrações e inicialização do servidor.
 
 ---
 
-## 📋 Status dos Requisitos do Projeto
+## 📋 Telas e Requisitos Entregues
 
-### ✅ Funcionalidades Totalmente Implementadas
+### 1. 🖥️ Tela Base (Sidebar e Perfil de Usuário)
+- Menu de navegação lateral (Sidebar) persistente com ícones e links rápidos.
+- Exibição de foto e identificação do usuário logado: **Carlos R. Mendes — Técnico em SST (Reg. MTE: 004128/SP)**, atendendo ao requisito sem necessidade de autenticação complexa.
+- Barra superior informativa e notificações de feedback via alerts do Bootstrap 5.
 
-- **RF01 — Cadastro de Colaboradores:** Formulário completo com validação de campos obrigatórios (`nome`, `matrícula`, `setor`), validação de unicidade da matrícula e formato de e-mail. Após o envio com sucesso, permanece na tela com formulário limpo para agilizar múltiplos cadastros.
-- **RF02 — Consulta e Listagem de Colaboradores:** Tabela responsiva em Bootstrap com nome, matrícula, setor, cargo e e-mail.
-- **RF03 — Pesquisa de Colaboradores:** Filtro dinâmico no banco de dados (`icontains`) que permite localizar colaboradores pelo nome completo ou por qualquer termo parcial.
-- **RF04 — Edição de Colaboradores:** Carregamento dos dados atuais com validação prévia. A matrícula do próprio colaborador pode ser mantida, mas matrículas de terceiros são estritamente bloqueadas.
-- **RF05 — Exclusão Segura com Confirmação:** Modal do Bootstrap 5 que exige confirmação explícita do usuário antes da exclusão. A operação é protegida por requisição **POST com token CSRF** (requisições GET são bloqueadas com erro 405).
-- **RF06 — Cadastro, Consulta e Gestão de EPIs:** Módulo completo de inventário de EPIs. Permite cadastrar nome, descrição, número do Certificado de Aprovação (C.A.), saldo físico de estoque e validade, além de pesquisa dinâmica por nome/C.A., edição e exclusão segura com modal.
-- **RF07 — Consulta de Empréstimos por Colaborador e Período:** Painel avançado de filtros permitindo consultar cautelas por colaborador específico, por status (`Ativo`, `Devolvido`) e por intervalo de datas (`data_inicio` e `data_fim`).
-- **RF08 — Gestão de Usuários e Permissões:** Estrutura integrada com o sistema nativo de autenticação do Django (`django.contrib.auth`).
-- **RF09 — Registro de Empréstimos e Devoluções de EPIs:**
-  - **Empréstimo:** Seleção do colaborador e EPI com abatimento automático no estoque físico do almoxarifado e bloqueio caso a quantidade solicitada seja maior que o saldo em estoque.
-  - **Devolução:** Modal interativo para registrar a data real de devolução, observações e opção de reintegrar as peças limpas de volta ao estoque do almoxarifado.
-  - **Prazos:** Identificação automática de empréstimos com prazo de devolução vencido (badge vermelho "Prazo Vencido").
+### 2. 👷 Gerenciamento de Colaboradores
+- **Cadastro:** Campos com validação obrigatória (`nome`, `matrícula`, `setor`), e-mail com validação de formato e bloqueio de matrícula duplicada.
+- **Fluxo Contínuo:** Após cadastrar com sucesso, o sistema permanece na tela de cadastro para agilizar múltiplos registros.
+- **Listagem e Pesquisa:** Tabela responsiva com busca por nome completo ou parcial no banco de dados.
+- **Edição:** Permite atualizar os dados do colaborador, mantendo sua matrícula ou impedindo colisão com terceiros.
+- **Exclusão Segura:** Modal interativo de confirmação em Bootstrap, com exclusão via requisição **POST com CSRF** (bloqueio rigoroso de GET via erro 405).
+
+### 3. 🛡️ Gerenciamento de Equipamentos (EPIs)
+- **Cadastro e Estoque:** Nome do EPI, descrição técnica, número do Certificado de Aprovação (C.A.) e saldo em estoque.
+- **Fluxo Contínuo:** Permanece na tela após o cadastro.
+- **Edição e Exclusão Segura:** Edição de dados e exclusão protegida com modal de confirmação.
+
+### 4. 📋 Controle de EPI (Empréstimos e Devoluções)
+- **Relacionamento com Chaves Estrangeiras:** Vínculo direto entre `Colaborador` e `EPI`.
+- **Controle de Datas:** Registra data de entrega, data prevista de devolução e data efetiva de devolução.
+- **Regra de Data Futura:** Para equipamentos emprestados, a data prevista para devolução deve ser estritamente posterior à data e hora atuais.
+- **Ciclo de 5 Status:**
+  - `Emprestado`: Uso temporário que deve retornar ao departamento.
+  - `Fornecido`: Entrega definitiva ao colaborador.
+  - `Devolvido`: Retorno do EPI com opção de reintegrar ao estoque.
+  - `Danificado`: Avaria durante a execução de obras civis.
+  - `Perdido`: Extravio do equipamento.
+- **Restrição de Criação:** No formulário de cadastro, os status `Devolvido`, `Danificado` e `Perdido` ficam **ocultos**, permitindo selecionar apenas `Emprestado` ou `Fornecido`.
+- **Tela de Atualização de Status:**
+  - Carrega todos os 5 status para seleção.
+  - **Bloqueio de alteração:** Colaborador, Equipamento, Data de Entrega e Data Prevista são somente leitura para auditoria.
+  - Exibição dinâmica em JavaScript dos campos de **Data de Devolução** e **Observação** apenas quando selecionados `Devolvido`, `Danificado` ou `Perdido`.
+- **Filtro Avançado Tipo AND:**
+  - Permite filtrar simultaneamente por `Colaborador` **AND** `EPI` **AND** `Status`.
+  - Exemplo: Consultar um operário específico com status `Emprestado` para saber exatamente o que ele ainda não devolveu.
+- **Sinalização Visual de Atraso:** Alerta visual vermelho ("Prazo Vencido") quando o prazo previsto foi ultrapassado.
 
 ---
 
@@ -98,7 +122,7 @@ Basta dar um duplo clique no arquivo **`executar.bat`**. O servidor iniciará e 
    python manage.py migrate
    ```
 
-5. **Popular com Dados Iniciais da Indústria Têxtil (Opcional):**
+5. **Popular com Dados Iniciais da Construção Civil (Opcional):**
    ```bash
    python manage.py popular_banco
    ```
@@ -110,32 +134,33 @@ Basta dar um duplo clique no arquivo **`executar.bat`**. O servidor iniciará e 
 
 ---
 
-## 🌐 Endereços das Páginas Principais
+## 🌐 Endereços das Páginas do Sistema
 
 | Módulo / Página | Rota / URL | Descrição |
 | :--- | :--- | :--- |
-| **Página Inicial** | `/` | Visão geral do EPI Control e cards de navegação |
+| **Página Inicial** | `/` | Dashboard de indicadores e visão geral da obra |
 | **Colaboradores — Listagem** | `/colaboradores/` | Tabela com busca por nome e exclusão segura |
 | **Colaboradores — Cadastro** | `/colaboradores/novo/` | Formulário para registrar novo colaborador |
-| **Colaboradores — Edição** | `/colaboradores/<id>/editar/` | Formulário de edição de dados |
-| **Equipamentos — Catálogo** | `/equipamentos/` | Inventário de EPIs, saldo de estoque e C.A. |
+| **Colaboradores — Edição** | `/colaboradores/<id>/editar/` | Atualização de dados cadastrais |
+| **Equipamentos — Catálogo** | `/equipamentos/` | Inventário de EPIs da construtora e C.A. |
 | **Equipamentos — Cadastro** | `/equipamentos/novo/` | Formulário para registrar novo EPI |
-| **Equipamentos — Edição** | `/equipamentos/<id>/editar/` | Edição de estoque e especificações |
-| **Empréstimos — Listagem** | `/emprestimos/` | Histórico com filtros por colaborador, status e período |
-| **Empréstimos — Novo** | `/emprestimos/novo/` | Registro de cautela com baixa de estoque |
+| **Equipamentos — Edição** | `/equipamentos/<id>/editar/` | Atualização de estoque e especificações |
+| **Controle de EPI — Listagem** | `/emprestimos/` | Histórico com filtros simultâneos **AND** e status |
+| **Controle de EPI — Novo Empréstimo** | `/emprestimos/novo/` | Saída de EPI com data futura e baixa de estoque |
+| **Controle de EPI — Atualizar Status** | `/emprestimos/<id>/editar/` | Atualização de status (Devolvido, Danificado, etc.) |
 | **Painel Administrativo** | `/admin/` | Gestão interna pelo Django Admin |
 
 ---
 
 ## 🧪 Testes Automatizados
 
-O sistema conta com **20 testes automatizados** cobrindo todos os fluxos críticos dos 3 módulos:
+O sistema conta com **23 testes automatizados** cobrindo todos os fluxos críticos dos módulos:
 ```bash
 python manage.py test
 ```
 **Resultado:**
 ```text
-Ran 20 tests in 0.373s - OK
+Ran 23 tests in 0.327s - OK
 ```
 
 ---
@@ -149,4 +174,3 @@ docker build -t epi-control .
 # Executar o contêiner
 docker run -p 8000:8000 --name epi-app epi-control
 ```
-Acesse: `http://localhost:8000`

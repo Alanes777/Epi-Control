@@ -5,33 +5,35 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.utils import timezone
 from .models import Colaborador, EPI, Emprestimo, ItemEmprestimo
-from .forms import ColaboradorForm, EPIForm, EmprestimoForm, DevolucaoForm
+from .forms import ColaboradorForm, EPIForm, EmprestimoCreateForm, EmprestimoUpdateForm
 
 
 def home(request):
     """
-    Página 1 — Página Inicial do EPI Control.
-    Apresenta a visão geral do sistema, objetivo e links rápidos de navegação.
+    Página Inicial do EPI Control (Construção Civil).
+    Apresenta a visão geral do sistema, objetivos de segurança do trabalho e estatísticas.
     """
     total_colaboradores = Colaborador.objects.count()
     total_epis = EPI.objects.count()
     total_emprestimos = Emprestimo.objects.count()
+    emprestimos_ativos = Emprestimo.objects.filter(status='EMPRESTADO').count()
 
     context = {
         'total_colaboradores': total_colaboradores,
         'total_epis': total_epis,
         'total_emprestimos': total_emprestimos,
+        'emprestimos_ativos': emprestimos_ativos,
     }
     return render(request, 'home.html', context)
 
 
 # ========================================================
-# MÓDULO DE COLABORADORES (CRUD COMPLETO - RF01 A RF05)
+# MÓDULO DE COLABORADORES (CRUD COMPLETO)
 # ========================================================
 
 def colaborador_list(request):
     """
-    Página 3 — Pesquisa e Listagem de Colaboradores.
+    Pesquisa e Listagem de Colaboradores.
     Lista colaboradores em tabela com busca pelo nome (completo ou parcial).
     """
     termo_busca = request.GET.get('q', '').strip()
@@ -51,9 +53,9 @@ def colaborador_list(request):
 
 def colaborador_create(request):
     """
-    Página 2 — Cadastro de Colaboradores.
-    Processa o formulário de cadastro, valida os dados e, após o envio com sucesso,
-    permanece na página de cadastro permitindo cadastrar outros colaboradores.
+    Cadastro de Colaboradores.
+    Ao cadastrar, exibe mensagem de sucesso ou falha.
+    Após o cadastro com sucesso, o sistema permanece na tela de cadastro.
     """
     if request.method == 'POST':
         form = ColaboradorForm(request.POST)
@@ -63,11 +65,12 @@ def colaborador_create(request):
                 request,
                 f"Colaborador '{colaborador.nome}' (Matrícula: {colaborador.matricula}) cadastrado com sucesso!"
             )
+            # Permanece na página de cadastro permitindo novos cadastros
             return redirect('colaborador_create')
         else:
             messages.error(
                 request,
-                "Não foi possível cadastrar o colaborador. Por favor, verifique os erros destacados abaixo."
+                "Falha ao cadastrar colaborador. Por favor, verifique os erros destacados abaixo."
             )
     else:
         form = ColaboradorForm()
@@ -82,8 +85,8 @@ def colaborador_create(request):
 
 def colaborador_update(request, pk):
     """
-    Página 4 — Edição de Colaboradores.
-    Carrega os dados existentes do colaborador, valida e persiste as alterações no banco.
+    Edição de Colaboradores.
+    Carrega os dados existentes do colaborador e persiste as alterações.
     """
     colaborador = get_object_or_404(Colaborador, pk=pk)
 
@@ -99,7 +102,7 @@ def colaborador_update(request, pk):
         else:
             messages.error(
                 request,
-                "Não foi possível salvar as alterações. Corrija os erros destacados no formulário."
+                "Falha ao salvar as alterações do colaborador. Corrija os erros destacados."
             )
     else:
         form = ColaboradorForm(instance=colaborador)
@@ -117,7 +120,7 @@ def colaborador_update(request, pk):
 def colaborador_delete(request, pk):
     """
     Exclusão de Colaboradores.
-    Atende ao requisito: protegida por requisição POST com CSRF. Não aceita GET.
+    Protegida por requisição POST com CSRF. Não aceita GET.
     """
     colaborador = get_object_or_404(Colaborador, pk=pk)
     nome = colaborador.nome
@@ -139,12 +142,12 @@ def colaborador_delete(request, pk):
 
 
 # ========================================================
-# MÓDULO DE EQUIPAMENTOS (EPIs - RF06)
+# MÓDULO DE EQUIPAMENTOS (EPIs)
 # ========================================================
 
 def epi_list(request):
     """
-    Pesquisa e Listagem de Equipamentos de Proteção Individual (RF06).
+    Pesquisa e Listagem de Equipamentos de Proteção Individual.
     Permite consultar por nome ou número do C.A. no banco de dados.
     """
     termo_busca = request.GET.get('q', '').strip()
@@ -168,8 +171,9 @@ def epi_list(request):
 
 def epi_create(request):
     """
-    Cadastro de Equipamentos de Proteção Individual (RF06).
-    Após o cadastro, permanece na tela para agilizar múltiplos cadastros no almoxarifado.
+    Cadastro de Equipamentos de Proteção Individual.
+    Exibe mensagem de sucesso ou falha no momento da criação.
+    Após o cadastro, o sistema permanece na tela de cadastro.
     """
     if request.method == 'POST':
         form = EPIForm(request.POST)
@@ -178,13 +182,14 @@ def epi_create(request):
             ca = f" (C.A. {epi.certificado_aprovacao})" if epi.certificado_aprovacao else ""
             messages.success(
                 request,
-                f"Equipamento '{epi.nome}'{ca} cadastrado com sucesso!"
+                f"Equipamento '{epi.nome}'{ca} cadastrado com sucesso no almoxarifado!"
             )
+            # Permanece na tela de cadastro permitindo novos registros
             return redirect('epi_create')
         else:
             messages.error(
                 request,
-                "Não foi possível cadastrar o equipamento. Verifique os campos abaixo."
+                "Falha ao cadastrar equipamento. Verifique os campos destacados abaixo."
             )
     else:
         form = EPIForm()
@@ -199,7 +204,8 @@ def epi_create(request):
 
 def epi_update(request, pk):
     """
-    Edição de Equipamentos de Proteção Individual (RF06).
+    Edição de Equipamentos de Proteção Individual.
+    Exibe tela parecida com a de cadastro carregando as informações para atualização.
     """
     epi = get_object_or_404(EPI, pk=pk)
 
@@ -215,7 +221,7 @@ def epi_update(request, pk):
         else:
             messages.error(
                 request,
-                "Não foi possível salvar as alterações do equipamento. Corrija os erros destacados."
+                "Falha ao atualizar o equipamento. Corrija os erros destacados no formulário."
             )
     else:
         form = EPIForm(instance=epi)
@@ -242,7 +248,7 @@ def epi_delete(request, pk):
         epi.delete()
         messages.success(
             request,
-            f"Equipamento '{nome}' foi excluído com sucesso!"
+            f"Equipamento '{nome}' foi excluído com sucesso do almoxarifado!"
         )
     except Exception as e:
         messages.error(
@@ -254,62 +260,65 @@ def epi_delete(request, pk):
 
 
 # ========================================================
-# MÓDULO DE EMPRÉSTIMOS E DEVOLUÇÕES (RF07 E RF09)
+# MÓDULO DE CONTROLE DE EPI (EMPRÉSTIMOS E DEVOLUÇÕES)
 # ========================================================
 
 def emprestimo_list(request):
     """
-    Página de Listagem e Consulta de Empréstimos de EPIs (RF07 e RF09).
-    Permite filtrar por colaborador, status e período (data inicial e final).
+    Pesquisa e Listagem de Empréstimos de EPIs com Filtro AND.
+    Permite filtrar simultaneamente por:
+    - Nome do colaborador (AND)
+    - Nome do equipamento (AND)
+    - Status do empréstimo (AND)
+    Exemplo: Se pesquisar pelo nome do colaborador + status 'EMPRESTADO',
+    é possível ver exatamente quais equipamentos o colaborador retirou e ainda não devolveu.
     """
-    colaborador_id = request.GET.get('colaborador', '').strip()
+    colaborador_nome = request.GET.get('colaborador_nome', '').strip()
+    epi_nome = request.GET.get('epi_nome', '').strip()
     status_filtro = request.GET.get('status', '').strip()
     data_inicio = request.GET.get('data_inicio', '').strip()
     data_fim = request.GET.get('data_fim', '').strip()
-    termo_busca = request.GET.get('q', '').strip()
 
-    emprestimos = Emprestimo.objects.select_related('colaborador').prefetch_related('itens__epi').all()
+    # Query inicial otimizada
+    emprestimos = Emprestimo.objects.select_related('colaborador', 'epi').prefetch_related('itens__epi').all()
 
-    # Filtro por Colaborador selecionado
-    if colaborador_id:
-        emprestimos = emprestimos.filter(colaborador_id=colaborador_id)
-
-    # Filtro por Busca textual (nome do colaborador ou do EPI)
-    if termo_busca:
+    # Aplicação de Filtros do tipo AND
+    if colaborador_nome:
         emprestimos = emprestimos.filter(
-            Q(colaborador__nome__icontains=termo_busca) |
-            Q(colaborador__matricula__icontains=termo_busca) |
-            Q(itens__epi__nome__icontains=termo_busca)
+            Q(colaborador__nome__icontains=colaborador_nome) |
+            Q(colaborador__matricula__icontains=colaborador_nome)
+        )
+
+    if epi_nome:
+        emprestimos = emprestimos.filter(
+            Q(epi__nome__icontains=epi_nome) |
+            Q(itens__epi__nome__icontains=epi_nome)
         ).distinct()
 
-    # Filtro por Status
     if status_filtro:
         emprestimos = emprestimos.filter(status=status_filtro)
 
-    # Filtro por Período (RF07: consultar empréstimos por período)
     if data_inicio:
         emprestimos = emprestimos.filter(data_emprestimo__gte=data_inicio)
+
     if data_fim:
         emprestimos = emprestimos.filter(data_emprestimo__lte=data_fim)
 
-    # Verifica e atualiza status de atrasados dinamicamente para exibição
+    # Identificação de atraso para status 'Emprestado'
     hoje = timezone.now().date()
     for emp in emprestimos:
-        if emp.status == 'ATIVO' and emp.data_prevista_devolucao and emp.data_prevista_devolucao < hoje:
+        if emp.status == 'EMPRESTADO' and emp.data_prevista_devolucao and emp.data_prevista_devolucao < hoje:
             emp.is_atrasado = True
         else:
             emp.is_atrasado = False
 
-    todos_colaboradores = Colaborador.objects.all().order_by('nome')
-
     context = {
         'emprestimos': emprestimos,
-        'todos_colaboradores': todos_colaboradores,
-        'colaborador_id': colaborador_id,
+        'colaborador_nome': colaborador_nome,
+        'epi_nome': epi_nome,
         'status_filtro': status_filtro,
         'data_inicio': data_inicio,
         'data_fim': data_fim,
-        'termo_busca': termo_busca,
         'total_encontrados': emprestimos.count(),
         'hoje': hoje,
     }
@@ -318,51 +327,59 @@ def emprestimo_list(request):
 
 def emprestimo_create(request):
     """
-    Registro de Novo Empréstimo / Cautela de EPI (RF09).
-    Valida estoque disponível, cria o empréstimo e debita a quantidade do almoxarifado.
+    Cadastro / Registro de Novo Empréstimo de EPI.
+    - Status permitidos apenas 'Emprestado' e 'Fornecido' (ocultando Devolvido, Danificado, Perdido).
+    - Data prevista deve ser posterior à data atual (para Emprestado).
+    - Valida estoque e debita do almoxarifado.
+    - Exibe mensagem de sucesso ou falha no momento do cadastro.
+    - Após o cadastro, permanece na tela de cadastro.
     """
     if request.method == 'POST':
-        form = EmprestimoForm(request.POST)
+        form = EmprestimoCreateForm(request.POST)
         if form.is_valid():
             colaborador = form.cleaned_data['colaborador']
             epi = form.cleaned_data['epi']
             quantidade = form.cleaned_data['quantidade']
             data_emprestimo = form.cleaned_data['data_emprestimo']
             data_prevista_devolucao = form.cleaned_data.get('data_prevista_devolucao')
+            status = form.cleaned_data['status']
             observacoes = form.cleaned_data.get('observacoes', '')
 
-            # 1. Cria o Empréstimo
+            # 1. Criação do Empréstimo com chaves estrangeiras adequadas
             emprestimo = Emprestimo.objects.create(
                 colaborador=colaborador,
+                epi=epi,
+                quantidade=quantidade,
                 data_emprestimo=data_emprestimo,
                 data_prevista_devolucao=data_prevista_devolucao,
-                status='ATIVO',
+                status=status,
                 observacoes=observacoes
             )
 
-            # 2. Cria o Item do Empréstimo
+            # 2. Criação do ItemEmprestimo associado
             ItemEmprestimo.objects.create(
                 emprestimo=emprestimo,
                 epi=epi,
                 quantidade=quantidade
             )
 
-            # 3. Baixa no estoque do almoxarifado
+            # 3. Baixa no estoque físico
             epi.quantidade_estoque -= quantidade
             epi.save()
 
             messages.success(
                 request,
-                f"Empréstimo registrado com sucesso! Fornecido(s) {quantidade}x '{epi.nome}' para '{colaborador.nome}'."
+                f"Empréstimo registrado com sucesso! Fornecido(s) {quantidade}x '{epi.nome}' para o colaborador '{colaborador.nome}'."
             )
-            return redirect('emprestimo_list')
+            # Permanece na tela de cadastro para novos registros
+            return redirect('emprestimo_create')
         else:
             messages.error(
                 request,
-                "Não foi possível registrar o empréstimo. Por favor, verifique os erros destacados abaixo."
+                "Falha ao registrar o empréstimo. Por favor, verifique os erros destacados abaixo."
             )
     else:
-        form = EmprestimoForm()
+        form = EmprestimoCreateForm()
 
     context = {
         'form': form,
@@ -371,47 +388,50 @@ def emprestimo_create(request):
     return render(request, 'emprestimos/emprestimo_form.html', context)
 
 
-@require_POST
-def emprestimo_devolver(request, pk):
+def emprestimo_update(request, pk):
     """
-    Registro da Devolução de um Empréstimo de EPI (RF09).
-    Atualiza status para 'DEVOLVIDO', data de devolução e reintegra o item ao estoque.
+    Atualização de Status do Empréstimo de EPI.
+    Requisitos:
+    - Exibe tela parecida com a de cadastro.
+    - Impede a alteração de: Colaborador, Equipamento, Data do Empréstimo e Data Prevista.
+    - Permite alterar: Status (todos os 5 status), Data de Devolução e Observação na Devolução.
+    - Campos de devolução são exibidos apenas quando selecionados Devolvido, Danificado ou Perdido.
     """
     emprestimo = get_object_or_404(Emprestimo, pk=pk)
+    status_anterior = emprestimo.status
 
-    if emprestimo.status == 'DEVOLVIDO':
-        messages.warning(request, "Este empréstimo já foi finalizado como devolvido anteriormente.")
-        return redirect('emprestimo_list')
+    if request.method == 'POST':
+        form = EmprestimoUpdateForm(request.POST, instance=emprestimo)
+        if form.is_valid():
+            novo_status = form.cleaned_data['status']
+            retornar_estoque = form.cleaned_data.get('retornar_ao_estoque')
+            emprestimo_salvo = form.save()
 
-    data_devolucao = request.POST.get('data_devolucao')
-    retornar_estoque = request.POST.get('retornar_ao_estoque') == 'on'
-    obs_devolucao = request.POST.get('observacoes_devolucao', '').strip()
+            # Se o item foi Devolvido e marcado para retornar ao estoque, reincorpora a quantidade ao almoxarifado
+            if status_anterior in ['EMPRESTADO', 'FORNECIDO'] and novo_status == 'DEVOLVIDO' and retornar_estoque:
+                if emprestimo_salvo.epi:
+                    emprestimo_salvo.epi.quantidade_estoque += emprestimo_salvo.quantidade
+                    emprestimo_salvo.epi.save()
 
-    try:
-        data_efetiva = datetime.strptime(data_devolucao, '%Y-%m-%d').date() if data_devolucao else timezone.now().date()
-    except ValueError:
-        data_efetiva = timezone.now().date()
+            messages.success(
+                request,
+                f"Status do empréstimo #{emprestimo.id} atualizado com sucesso para '{emprestimo_salvo.get_status_display()}'!"
+            )
+            return redirect('emprestimo_list')
+        else:
+            messages.error(
+                request,
+                "Falha ao atualizar o status do empréstimo. Verifique os campos destacados."
+            )
+    else:
+        form = EmprestimoUpdateForm(instance=emprestimo)
 
-    # Atualiza o Empréstimo
-    emprestimo.status = 'DEVOLVIDO'
-    emprestimo.data_devolucao = data_efetiva
-    if obs_devolucao:
-        obs_atual = emprestimo.observacoes or ""
-        emprestimo.observacoes = f"{obs_atual}\n[Devolução em {data_efetiva.strftime('%d/%m/%Y')}]: {obs_devolucao}".strip()
-    emprestimo.save()
-
-    # Reintegração das peças ao estoque se solicitado
-    if retornar_estoque:
-        for item in emprestimo.itens.all():
-            epi = item.epi
-            epi.quantidade_estoque += item.quantidade
-            epi.save()
-
-    messages.success(
-        request,
-        f"Devolução do Empréstimo #{emprestimo.id} (Colaborador: {emprestimo.colaborador.nome}) confirmada com sucesso!"
-    )
-    return redirect('emprestimo_list')
+    context = {
+        'form': form,
+        'emprestimo': emprestimo,
+        'titulo_pagina': f'Atualizar Status — Cautela #{emprestimo.id}',
+    }
+    return render(request, 'emprestimos/emprestimo_edit.html', context)
 
 
 @require_POST
@@ -422,12 +442,13 @@ def emprestimo_delete(request, pk):
     """
     emprestimo = get_object_or_404(Emprestimo, pk=pk)
     colab_nome = emprestimo.colaborador.nome
+    item_nome = emprestimo.epi.nome if emprestimo.epi else "EPI"
 
     try:
         emprestimo.delete()
         messages.success(
             request,
-            f"Registro de empréstimo do colaborador '{colab_nome}' excluído com sucesso!"
+            f"Registro de empréstimo ({item_nome} para '{colab_nome}') excluído com sucesso!"
         )
     except Exception as e:
         messages.error(
@@ -436,4 +457,3 @@ def emprestimo_delete(request, pk):
         )
 
     return redirect('emprestimo_list')
-

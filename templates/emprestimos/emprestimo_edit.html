@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}EPI Control — {{ titulo_pagina }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+
+        <!-- Navegação / Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'emprestimo_list' %}">Controle de EPI</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Atualizar Status #{{ emprestimo.id }}</li>
+            </ol>
+        </nav>
+
+        <!-- Cartão de Edição de Status do Empréstimo -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="bi bi-pencil-square text-warning me-2"></i>
+                            {{ titulo_pagina }}
+                        </h5>
+                        <small class="text-secondary">
+                            Atualize o status do equipamento. Conforme as regras da construtora, os dados originais da cautela não podem ser modificados.
+                        </small>
+                    </div>
+                    <a href="{% url 'emprestimo_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Voltar à Listagem
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <form method="post" novalidate id="formEdicaoEmprestimo">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}
+                                <div><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- SEÇÃO: CAMPOS BLOQUEADOS PARA ALTERAÇÃO (Requisito da Construtora) -->
+                    <div class="card bg-light border-0 mb-4 p-3">
+                        <h6 class="fw-bold text-secondary text-uppercase small mb-3">
+                            <i class="bi bi-lock-fill text-muted me-1"></i> Dados Originais do Empréstimo (Somente Leitura)
+                        </h6>
+                        <div class="row g-3">
+                            <!-- Nome do Colaborador (Bloqueado) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1">Nome do Colaborador</label>
+                                <input type="text"
+                                       class="form-control form-control-sm bg-white"
+                                       value="{{ emprestimo.colaborador.nome }} (Matrícula: {{ emprestimo.colaborador.matricula }})"
+                                       disabled
+                                       readonly>
+                                <div class="form-text small" style="font-size: 0.72rem;">Bloqueado para alteração durante a atualização de status.</div>
+                            </div>
+
+                            <!-- Nome do Equipamento (Bloqueado) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1">Nome do Equipamento (EPI)</label>
+                                <input type="text"
+                                       class="form-control form-control-sm bg-white"
+                                       value="{% if emprestimo.epi %}{{ emprestimo.epi.nome }} (Qtd: {{ emprestimo.quantidade }}){% else %}EPI{% endif %}"
+                                       disabled
+                                       readonly>
+                                <div class="form-text small" style="font-size: 0.72rem;">Bloqueado para alteração durante a atualização de status.</div>
+                            </div>
+
+                            <!-- Data do Empréstimo (Bloqueada) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1">Data de Entrega do Equipamento</label>
+                                <input type="text"
+                                       class="form-control form-control-sm bg-white"
+                                       value="{{ emprestimo.data_emprestimo|date:'d/m/Y' }}"
+                                       disabled
+                                       readonly>
+                                <div class="form-text small" style="font-size: 0.72rem;">Bloqueado para alteração.</div>
+                            </div>
+
+                            <!-- Data Prevista da Devolução (Bloqueada) -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1">Data Prevista da Devolução</label>
+                                <input type="text"
+                                       class="form-control form-control-sm bg-white"
+                                       value="{% if emprestimo.data_prevista_devolucao %}{{ emprestimo.data_prevista_devolucao|date:'d/m/Y' }}{% else %}Não aplicável (Fornecido permanente){% endif %}"
+                                       disabled
+                                       readonly>
+                                <div class="form-text small" style="font-size: 0.72rem;">Bloqueado para alteração.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEÇÃO: CAMPOS EDITÁVEIS DE STATUS E DEVOLUÇÃO -->
+                    <div class="mb-4">
+                        <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.status.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.status.errors %}
+                                    <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text text-muted">
+                                Opções disponíveis: <strong>Emprestado</strong>, <strong>Fornecido</strong>, <strong>Devolvido</strong>, <strong>Danificado</strong> e <strong>Perdido</strong>.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- BLOCO DE DEVOLUÇÃO (Exibido apenas quando status for Devolvido, Danificado ou Perdido) -->
+                    <div id="bloco_devolucao" class="border border-warning-subtle bg-warning-subtle bg-opacity-25 rounded-3 p-3 mb-4 {% if form.status.value not in 'DEVOLVIDO,DANIFICADO,PERDIDO' %}d-none{% endif %}">
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-box-arrow-in-down-left text-warning me-1"></i>
+                            Informações de Devolução / Retorno do Equipamento
+                        </h6>
+
+                        <!-- Data Efetiva da Devolução -->
+                        <div class="mb-3">
+                            <label for="{{ form.data_devolucao.id_for_label }}" class="form-label fw-semibold small">
+                                {{ form.data_devolucao.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.data_devolucao }}
+                            {% if form.data_devolucao.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.data_devolucao.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text small text-muted">{{ form.data_devolucao.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Observação na Devolução -->
+                        <div class="mb-3">
+                            <label for="{{ form.observacao_devolucao.id_for_label }}" class="form-label fw-semibold small">
+                                {{ form.observacao_devolucao.label }}
+                            </label>
+                            {{ form.observacao_devolucao }}
+                            {% if form.observacao_devolucao.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.observacao_devolucao.errors %}
+                                        <i class="bi bi-x-circle me-1"></i>{{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text small text-muted">{{ form.observacao_devolucao.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reintegrar ao Estoque -->
+                        <div class="form-check" id="box_retornar_estoque">
+                            {{ form.retornar_ao_estoque }}
+                            <label class="form-check-label fw-semibold small" for="{{ form.retornar_ao_estoque.id_for_label }}">
+                                {{ form.retornar_ao_estoque.label }}
+                            </label>
+                            <div class="form-text small text-muted">{{ form.retornar_ao_estoque.help_text }}</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Botões de Ação -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'emprestimo_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar e Voltar
+                        </a>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Salvar e Atualizar Status
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Dinâmica de exibição conforme especificação:
+    // "Os campos 'Data da devolução' e 'Observação na devolução' devem ser exibidos apenas quando os status Danificado, Devolvido ou Perdido forem selecionados"
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusSelect = document.getElementById('id_status_select');
+        const blocoDevolucao = document.getElementById('bloco_devolucao');
+        const dataDevolucaoInput = document.getElementById('id_data_devolucao');
+        const boxRetornarEstoque = document.getElementById('box_retornar_estoque');
+
+        function atualizarVisibilidadeDevolucao() {
+            const valor = statusSelect.value;
+            const statusComDevolucao = ['DEVOLVIDO', 'DANIFICADO', 'PERDIDO'];
+
+            if (statusComDevolucao.includes(valor)) {
+                blocoDevolucao.classList.remove('d-none');
+
+                // Preenche com data de hoje se estiver vazio
+                if (!dataDevolucaoInput.value) {
+                    const hoje = new Date().toISOString().split('T')[0];
+                    dataDevolucaoInput.value = hoje;
+                }
+
+                // Ajusta visualização do retorno ao estoque conforme o tipo
+                if (valor === 'DEVOLVIDO') {
+                    boxRetornarEstoque.classList.remove('d-none');
+                } else {
+                    // Danificado ou Perdido não voltam para o estoque ativo por padrão
+                    boxRetornarEstoque.classList.add('d-none');
+                    const check = document.getElementById('id_retornar_estoque');
+                    if (check) check.checked = false;
+                }
+            } else {
+                blocoDevolucao.classList.add('d-none');
+            }
+        }
+
+        // Executa ao alterar o select
+        statusSelect.addEventListener('change', atualizarVisibilidadeDevolucao);
+
+        // Executa na inicialização
+        atualizarVisibilidadeDevolucao();
+    });
+</script>
+{% endblock %}

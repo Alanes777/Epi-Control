@@ -1,26 +1,29 @@
 {% extends 'base.html' %}
 
-{% block title %}EPI Control — Página Inicial{% endblock %}
+{% block title %}EPI Control — Painel Geral da Construtora{% endblock %}
 
 {% block content %}
-<!-- Cabeçalho de Apresentação -->
+<!-- Banner de Apresentação -->
 <div class="p-4 p-md-5 mb-4 bg-white rounded-3 border shadow-sm">
     <div class="row align-items-center">
         <div class="col-lg-8">
             <div class="d-flex align-items-center mb-2">
-                <span class="badge bg-primary me-2">Versão 1.0</span>
-                <span class="text-muted small">Setor Têxtil • Segurança do Trabalho</span>
+                <span class="badge bg-warning text-dark me-2 font-monospace">NR-6 & NR-18</span>
+                <span class="text-secondary small">Construção Civil • Gestão Integrada de SST</span>
             </div>
-            <h1 class="display-6 fw-bold text-dark mb-3">EPI Control</h1>
-            <p class="lead text-secondary mb-4">
-                Sistema desenvolvido para auxiliar uma empresa do setor têxtil na organização dos cadastros de colaboradores e equipamentos de proteção, controle de estoque e acompanhamento de empréstimos e devoluções de EPIs.
+            <h1 class="display-6 fw-bold text-dark mb-3">EPI Control — Construtora</h1>
+            <p class="lead text-secondary mb-4" style="font-size: 1.05rem;">
+                Sistema implementado após auditoria interna para assegurar o uso e fornecimento correto de Equipamentos de Proteção Individual pelos colaboradores da construtora, eliminando esquecimentos e controlando devoluções no departamento de SST.
             </p>
             <div class="d-flex flex-wrap gap-2">
-                <a href="{% url 'colaborador_list' %}" class="btn btn-primary">
-                    <i class="bi bi-people-fill me-1"></i> Gerenciar Colaboradores
+                <a href="{% url 'emprestimo_create' %}" class="btn btn-primary">
+                    <i class="bi bi-clipboard-plus me-1"></i> Registrar Empréstimo
                 </a>
                 <a href="{% url 'colaborador_create' %}" class="btn btn-outline-primary">
                     <i class="bi bi-person-plus me-1"></i> Cadastrar Colaborador
+                </a>
+                <a href="{% url 'epi_create' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-plus-circle me-1"></i> Cadastrar EPI
                 </a>
             </div>
         </div>
@@ -30,9 +33,72 @@
     </div>
 </div>
 
-<!-- Contextualização e Módulos do Sistema -->
+<!-- Indicadores Rápidos -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Colaboradores</span>
+                    <h3 class="fw-bold text-dark mb-0 mt-1">{{ total_colaboradores }}</h3>
+                    <small class="text-success"><i class="bi bi-check-circle me-1"></i>Operários da Obra</small>
+                </div>
+                <div class="bg-primary-subtle text-primary p-3 rounded-circle fs-4">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">EPIs no Catálogo</span>
+                    <h3 class="fw-bold text-dark mb-0 mt-1">{{ total_epis }}</h3>
+                    <small class="text-secondary">Itens de Almoxarifado</small>
+                </div>
+                <div class="bg-info-subtle text-info p-3 rounded-circle fs-4">
+                    <i class="bi bi-boxes"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Total de Cautelas</span>
+                    <h3 class="fw-bold text-dark mb-0 mt-1">{{ total_emprestimos }}</h3>
+                    <small class="text-secondary">Histórico de Saídas</small>
+                </div>
+                <div class="bg-warning-subtle text-warning p-3 rounded-circle fs-4">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">EPIs Emprestados</span>
+                    <h3 class="fw-bold text-primary mb-0 mt-1">{{ emprestimos_ativos }}</h3>
+                    <small class="text-danger"><i class="bi bi-clock-history me-1"></i>Em Posse no Canteiro</small>
+                </div>
+                <div class="bg-success-subtle text-success p-3 rounded-circle fs-4">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Módulos do Sistema de Gerenciamento de EPI -->
 <div class="row g-4 mb-4">
-    <!-- Módulo 1: Colaboradores (Implementado) -->
+    <!-- Módulo 1: Colaboradores -->
     <div class="col-md-4">
         <div class="card h-100 border-primary border-top border-top-3">
             <div class="card-body">
@@ -41,44 +107,44 @@
                     <i class="bi bi-people fs-4 text-primary"></i>
                 </div>
                 <h5 class="card-title fw-bold">Colaboradores</h5>
-                <p class="card-text text-muted small">
-                    Cadastro completo de colaboradores com matrícula única, setor, cargo e e-mail. Permite pesquisa, listagem, edição e exclusão segura.
+                <p class="card-text text-secondary small">
+                    Cadastro de operários e profissionais da construção civil (pedreiros, carpinteiros, armadores, eletricistas), com matrícula única, listagem e busca por nome.
                 </p>
             </div>
             <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                 <div class="d-grid gap-2">
                     <a href="{% url 'colaborador_list' %}" class="btn btn-sm btn-outline-primary">
-                        Listar Colaboradores ({{ total_colaboradores }} cadastrado{{ total_colaboradores|pluralize:"s" }})
+                        <i class="bi bi-search me-1"></i> Consultar Colaboradores
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Módulo 2: Equipamentos (Implementado) -->
+    <!-- Módulo 2: Equipamentos -->
     <div class="col-md-4">
         <div class="card h-100 border-primary border-top border-top-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Módulo Ativo</span>
-                    <i class="bi bi-tools fs-4 text-primary"></i>
+                    <i class="bi bi-boxes fs-4 text-primary"></i>
                 </div>
                 <h5 class="card-title fw-bold">Equipamentos (EPIs)</h5>
-                <p class="card-text text-muted small">
-                    Catalogação de equipamentos de proteção (protetores auriculares, respiradores, luvas térmicas), Certificado de Aprovação (C.A.) e saldo de estoque.
+                <p class="card-text text-secondary small">
+                    Inventário e catalogação de EPIs da construtora (capacetes, cintos paraquedista, botinas com bico de aço, luvas de vaqueta), controle de C.A. e saldo de estoque.
                 </p>
             </div>
             <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                 <div class="d-grid gap-2">
                     <a href="{% url 'epi_list' %}" class="btn btn-sm btn-outline-primary">
-                        Listar Equipamentos ({{ total_epis }} cadastrado{{ total_epis|pluralize:"s" }})
+                        <i class="bi bi-boxes me-1"></i> Consultar Estoque de EPIs
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Módulo 3: Empréstimos & Devoluções (Implementado) -->
+    <!-- Módulo 3: Controle de EPI / Empréstimos -->
     <div class="col-md-4">
         <div class="card h-100 border-primary border-top border-top-3">
             <div class="card-body">
@@ -86,15 +152,15 @@
                     <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Módulo Ativo</span>
                     <i class="bi bi-arrow-left-right fs-4 text-primary"></i>
                 </div>
-                <h5 class="card-title fw-bold">Empréstimos e Devoluções</h5>
-                <p class="card-text text-muted small">
-                    Registro de retiradas e cautelas de EPIs por colaborador, datas de entrega, prazos de devolução e acompanhamento de itens em uso no setor têxtil.
+                <h5 class="card-title fw-bold">Controle de EPI</h5>
+                <p class="card-text text-secondary small">
+                    Registro de saídas temporárias (Emprestado) ou definitivas (Fornecido), atualização de status para Devolvido, Danificado ou Perdido e filtro de pesquisa tipo AND.
                 </p>
             </div>
             <div class="card-footer bg-transparent border-0 pt-0 pb-3">
                 <div class="d-grid gap-2">
-                    <a href="{% url 'emprestimo_list' %}" class="btn btn-sm btn-outline-primary">
-                        Listar Empréstimos ({{ total_emprestimos }} registrado{{ total_emprestimos|pluralize:"s" }})
+                    <a href="{% url 'emprestimo_list' %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-funnel me-1"></i> Acessar Controle & Cautelas
                     </a>
                 </div>
             </div>
@@ -102,13 +168,18 @@
     </div>
 </div>
 
-<!-- Contextualização Acadêmica -->
-<div class="card bg-light border-0">
+<!-- Contexto Acadêmico e Técnico SST -->
+<div class="card bg-white shadow-sm border-0">
     <div class="card-body p-4">
-        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle me-1 text-primary"></i> Sobre este projeto acadêmico</h6>
-        <p class="text-secondary small mb-0">
-            Este sistema foi desenvolvido como projeto prático do curso técnico em Desenvolvimento de Sistemas. O foco desta versão prioritária é a integridade das operações de CRUD do módulo de colaboradores, a validação no servidor com Django ORM e a persistência de dados em banco SQLite.
-        </p>
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-info-circle-fill fs-3 text-primary"></i>
+            <div>
+                <h6 class="fw-bold text-dark mb-1">Aderência às Necessidades da Construtora e Normas de Segurança (NR-6 / NR-18)</h6>
+                <p class="text-secondary small mb-0">
+                    O sistema garante o rastreamento individualizado de cada equipamento fornecido aos operários no canteiro de obras. Permite auditar datas de entrega, prazos de devolução, estado de conservação (danificado para manutenção, perdido para reposição) e saldo em almoxarifado, atendendo aos padrões de qualidade da auditoria interna da construtora.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
