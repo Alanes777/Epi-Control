@@ -148,19 +148,20 @@ Basta dar um duplo clique no arquivo **`executar.bat`**. O servidor iniciará e 
 | **Controle de EPI — Listagem** | `/emprestimos/` | Histórico com filtros simultâneos **AND** e status |
 | **Controle de EPI — Novo Empréstimo** | `/emprestimos/novo/` | Saída de EPI com data futura e baixa de estoque |
 | **Controle de EPI — Atualizar Status** | `/emprestimos/<id>/editar/` | Atualização de status (Devolvido, Danificado, etc.) |
+| **Tela de Relatórios (Filtro AND)** | `/relatorios/` | Pesquisa combinada (Colaborador AND EPI AND Status) e auditoria SST |
 | **Painel Administrativo** | `/admin/` | Gestão interna pelo Django Admin |
 
 ---
 
 ## 🧪 Testes Automatizados
 
-O sistema conta com **23 testes automatizados** cobrindo todos os fluxos críticos dos módulos:
+O sistema conta com **24 testes automatizados** cobrindo todos os fluxos críticos dos módulos:
 ```bash
 python manage.py test
 ```
 **Resultado:**
 ```text
-Ran 23 tests in 0.327s - OK
+Ran 24 tests in 0.430s - OK
 ```
 
 ---

@@ -85,6 +85,9 @@
             <a class="nav-link {% if request.resolver_match.url_name == 'emprestimo_create' %}active{% endif %}" href="{% url 'emprestimo_create' %}">
                 <i class="bi bi-clipboard-plus me-2"></i> Registrar Empréstimo
             </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'relatorio_list' %}active{% endif %}" href="{% url 'relatorio_list' %}">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i> Tela de Relatórios (AND)
+            </a>
         </nav>
 
         <!-- Rodapé da Sidebar -->
@@ -130,6 +133,7 @@
                 <div class="sidebar-heading">Controle de EPI</div>
                 <a class="nav-link" href="{% url 'emprestimo_list' %}"><i class="bi bi-arrow-left-right me-2"></i> Empréstimos & Devoluções</a>
                 <a class="nav-link" href="{% url 'emprestimo_create' %}"><i class="bi bi-clipboard-plus me-2"></i> Registrar Empréstimo</a>
+                <a class="nav-link" href="{% url 'relatorio_list' %}"><i class="bi bi-file-earmark-bar-graph me-2"></i> Tela de Relatórios (AND)</a>
             </nav>
         </div>
     </div>

@@ -196,3 +196,47 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusSelect = document.getElementById('id_status');
+        const campoDataPrevista = document.getElementById('campo_data_prevista');
+        const dataPrevistaInput = document.getElementById('id_data_prevista_devolucao');
+        const dataEmprestimoInput = document.getElementById('id_data_emprestimo');
+
+        // Define a data mínima para a devolução como amanhã (data futura)
+        const amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+        const amanhaStr = amanha.toISOString().split('T')[0];
+        if (dataPrevistaInput) {
+            dataPrevistaInput.setAttribute('min', amanhaStr);
+        }
+
+        // Se data de entrega estiver vazia, preenche com hoje
+        if (dataEmprestimoInput && !dataEmprestimoInput.value) {
+            dataEmprestimoInput.value = new Date().toISOString().split('T')[0];
+        }
+
+        function toggleDataPrevista() {
+            if (!statusSelect || !campoDataPrevista) return;
+            if (statusSelect.value === 'FORNECIDO') {
+                campoDataPrevista.style.opacity = '0.5';
+                if (dataPrevistaInput) {
+                    dataPrevistaInput.required = false;
+                }
+            } else {
+                campoDataPrevista.style.opacity = '1';
+                if (dataPrevistaInput) {
+                    dataPrevistaInput.required = true;
+                }
+            }
+        }
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', toggleDataPrevista);
+            toggleDataPrevista();
+        }
+    });
+</script>
+{% endblock %}

@@ -184,9 +184,16 @@ class EmprestimoCreateForm(forms.ModelForm):
     status = forms.ChoiceField(
         choices=STATUS_CADASTRO,
         initial='EMPRESTADO',
-        widget=forms.Select(attrs={'class': 'form-select'}),
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_status'}),
         label="Tipo de Saída / Status",
         help_text="Selecione se o item é temporário (Emprestado) ou permanente (Fornecido).",
+        required=True
+    )
+    data_emprestimo = forms.DateField(
+        initial=timezone.now().date,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'id': 'id_data_emprestimo'}),
+        label='Data de Entrega do Equipamento',
+        help_text='Data em que o EPI foi retirado com o técnico de SST.',
         required=True
     )
 

@@ -325,6 +325,79 @@ def emprestimo_list(request):
     return render(request, 'emprestimos/emprestimo_list.html', context)
 
 
+def relatorio_list(request):
+    """
+    Tela de Relatórios de Controle de EPIs (Requisito Específico).
+    Permite pesquisar pelo nome do colaborador, nome do equipamento e status,
+    aplicando filtro do tipo AND.
+    Exemplo: Pesquisar por colaborador + status 'EMPRESTADO' para auditar exatamente quais EPIs
+    o colaborador retirou e ainda não devolveu.
+    """
+    colaborador_nome = request.GET.get('colaborador_nome', '').strip()
+    epi_nome = request.GET.get('epi_nome', '').strip()
+    status_filtro = request.GET.get('status', '').strip()
+    data_inicio = request.GET.get('data_inicio', '').strip()
+    data_fim = request.GET.get('data_fim', '').strip()
+
+    # Query inicial otimizada
+    emprestimos = Emprestimo.objects.select_related('colaborador', 'epi').prefetch_related('itens__epi').all()
+
+    # Aplicação do Filtro do tipo AND
+    if colaborador_nome:
+        emprestimos = emprestimos.filter(
+            Q(colaborador__nome__icontains=colaborador_nome) |
+            Q(colaborador__matricula__icontains=colaborador_nome)
+        )
+
+    if epi_nome:
+        emprestimos = emprestimos.filter(
+            Q(epi__nome__icontains=epi_nome) |
+            Q(itens__epi__nome__icontains=epi_nome)
+        ).distinct()
+
+    if status_filtro:
+        emprestimos = emprestimos.filter(status=status_filtro)
+
+    if data_inicio:
+        emprestimos = emprestimos.filter(data_emprestimo__gte=data_inicio)
+
+    if data_fim:
+        emprestimos = emprestimos.filter(data_emprestimo__lte=data_fim)
+
+    # Identificação de atraso para status 'Emprestado'
+    hoje = timezone.now().date()
+    for emp in emprestimos:
+        if emp.status == 'EMPRESTADO' and emp.data_prevista_devolucao and emp.data_prevista_devolucao < hoje:
+            emp.is_atrasado = True
+        else:
+            emp.is_atrasado = False
+
+    # Estatísticas agregadas do relatório
+    total_encontrados = emprestimos.count()
+    total_emprestados = emprestimos.filter(status='EMPRESTADO').count()
+    total_fornecidos = emprestimos.filter(status='FORNECIDO').count()
+    total_devolvidos = emprestimos.filter(status='DEVOLVIDO').count()
+    total_danificados = emprestimos.filter(status='DANIFICADO').count()
+    total_perdidos = emprestimos.filter(status='PERDIDO').count()
+
+    context = {
+        'emprestimos': emprestimos,
+        'colaborador_nome': colaborador_nome,
+        'epi_nome': epi_nome,
+        'status_filtro': status_filtro,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'total_encontrados': total_encontrados,
+        'total_emprestados': total_emprestados,
+        'total_fornecidos': total_fornecidos,
+        'total_devolvidos': total_devolvidos,
+        'total_danificados': total_danificados,
+        'total_perdidos': total_perdidos,
+        'hoje': hoje,
+    }
+    return render(request, 'relatorios/relatorio_list.html', context)
+
+
 def emprestimo_create(request):
     """
     Cadastro / Registro de Novo Empréstimo de EPI.

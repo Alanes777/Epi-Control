@@ -140,6 +140,7 @@ class ColaboradorCRUDTest(TestCase):
             reverse('epi_create'),
             reverse('emprestimo_list'),
             reverse('emprestimo_create'),
+            reverse('relatorio_list'),
         ]
         for url in urls:
             res = self.client.get(url)
@@ -432,3 +433,58 @@ class EmprestimoCRUDTest(TestCase):
         res_post = self.client.post(reverse('emprestimo_delete', args=[emp.pk]), follow=True)
         self.assertEqual(res_post.status_code, 200)
         self.assertFalse(Emprestimo.objects.filter(pk=emp.pk).exists())
+
+    def test_tela_de_relatorios_filtro_and(self):
+        """Tela de Relatórios: pesquisa simultânea por Colaborador AND EPI AND Status."""
+        hoje = timezone.now().date()
+        outro_colab = Colaborador.objects.create(
+            nome="Marcos Aurélio Lima",
+            matricula="CONST-3001",
+            setor="Canteiro Geral"
+        )
+        outro_epi = EPI.objects.create(
+            nome="Luva de Vaqueta Mista",
+            certificado_aprovacao="11710",
+            quantidade_estoque=20
+        )
+
+        # Cautela 1: Carlos + Capacete + EMPRESTADO
+        Emprestimo.objects.create(
+            colaborador=self.colab,
+            epi=self.epi,
+            quantidade=1,
+            data_emprestimo=hoje,
+            data_prevista_devolucao=hoje + timedelta(days=7),
+            status='EMPRESTADO'
+        )
+
+        # Cautela 2: Marcos + Luva + EMPRESTADO
+        Emprestimo.objects.create(
+            colaborador=outro_colab,
+            epi=outro_epi,
+            quantidade=2,
+            data_emprestimo=hoje,
+            data_prevista_devolucao=hoje + timedelta(days=7),
+            status='EMPRESTADO'
+        )
+
+        # Cautela 3: Carlos + Capacete + DEVOLVIDO
+        Emprestimo.objects.create(
+            colaborador=self.colab,
+            epi=self.epi,
+            quantidade=1,
+            data_emprestimo=hoje - timedelta(days=15),
+            data_devolucao=hoje - timedelta(days=2),
+            status='DEVOLVIDO'
+        )
+
+        # Pesquisa na Tela de Relatórios com Filtro AND:
+        # Colaborador: Carlos AND Equipamento: Capacete AND Status: EMPRESTADO
+        url = reverse('relatorio_list') + f'?colaborador_nome=Carlos&epi_nome=Capacete&status=EMPRESTADO'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['total_encontrados'], 1)
+        self.assertContains(res, "Carlos Eduardo Pereira")
+        self.assertContains(res, "Capacete de Segurança com Jugular")
+        self.assertNotContains(res, "Marcos Aurélio Lima")
+        self.assertNotContains(res, "Luva de Vaqueta Mista")

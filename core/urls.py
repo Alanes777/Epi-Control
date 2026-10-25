@@ -22,4 +22,7 @@ urlpatterns = [
     path('emprestimos/novo/', views.emprestimo_create, name='emprestimo_create'),
     path('emprestimos/<int:pk>/editar/', views.emprestimo_update, name='emprestimo_update'),
     path('emprestimos/<int:pk>/excluir/', views.emprestimo_delete, name='emprestimo_delete'),
+
+    # Tela de Relatórios de Controle de EPI (Filtro AND)
+    path('relatorios/', views.relatorio_list, name='relatorio_list'),
 ]
