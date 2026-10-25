@@ -7,29 +7,6 @@ Sistema web completo desenvolvido para o controle, inventário, catalogação e 
 
 ---
 
-## 👥 Integrantes do Grupo
-
-Preencha os dados dos integrantes da equipe para entrega da atividade:
-
-| Nome do Aluno | Matrícula / Registro | E-mail |
-| :--- | :--- | :--- |
-| `[Nome do Aluno 1]` | `[Matrícula 1]` | `[email1@escola.edu.br]` |
-| `[Nome do Aluno 2]` | `[Matrícula 2]` | `[email2@escola.edu.br]` |
-| `[Nome do Aluno 3]` | `[Matrícula 3]` | `[email3@escola.edu.br]` |
-| `[Nome do Aluno 4]` | `[Matrícula 4]` | `[email4@escola.edu.br]` |
-
----
-
-## 🎯 Contextualização e Desafio do Sistema
-
-Uma empresa de construção civil da região identificou a necessidade de melhorar a gestão dos equipamentos de proteção individual (EPIs) utilizados pelos colaboradores nas obras. Em auditoria interna, observou-se que colaboradores esqueciam seus EPIs em casa ou não os retiravam com o setor de SST, gerando riscos e não conformidades com as normas regulamentadoras (NR-06, NR-18 e NR-35).
-
-O **EPI Control** foi desenvolvido por alunos do curso de Desenvolvimento de Sistemas para solucionar esse desafio, assegurando um ambiente de trabalho mais seguro e em total conformidade com a legislação trabalhista:
-
-1. **Tela Base / Layout com Menu Lateral:** Navegação ágil por sidebar com identificação do usuário logado (perfil estático do Técnico em SST Carlos R. Mendes).
-2. **Cadastro e Gestão de Colaboradores:** Controle de operários por frente de trabalho (alvenaria, estruturas, armação, elétrica) com validação de matrícula única.
-3. **Catálogo e Estoque de EPIs:** Gestão de equipamentos com número de Certificado de Aprovação (C.A.), controle quantitativo no almoxarifado e validade.
-4. **Controle de EPI / Cautelas e Devoluções:** Ciclo completo de vida dos equipamentos (Emprestado, Fornecido, Devolvido, Danificado, Perdido), validação de devolução futura e filtros combinados do tipo **AND**.
 
 ---
 
