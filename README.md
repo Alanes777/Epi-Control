@@ -7,21 +7,6 @@ Sistema web completo desenvolvido para o controle, inventário, catalogação, a
 
 ---
 
-## 🎯 Contextualização e Desafio do Sistema
-
-Uma empresa de construção civil da região identificou a necessidade de melhorar a gestão dos equipamentos de proteção individual (EPIs) utilizados pelos colaboradores nas obras. Em auditoria interna, observou-se que colaboradores esqueciam seus EPIs em casa ou não os retiravam com o setor de SST, gerando riscos e não conformidades com as normas regulamentadoras (NR-06, NR-18 e NR-35).
-
-O **EPI Control** foi desenvolvido por alunos do curso de Desenvolvimento de Sistemas para solucionar esse desafio, assegurando um ambiente de trabalho mais seguro e em total conformidade com a legislação trabalhista:
-
-1. **Autenticação & Controle de Acesso:** Login/Logout protegidos com expiração de sessão e bloqueio automático de acesso anônimo a todas as rotas internas.
-2. **Controle de Usuários e Permissões no Django Admin:** Criação de grupos com permissões granulares de **adicionar, editar, visualizar e excluir** dados de modelos, como demonstrado com o model **Setor**.
-3. **Tela Base / Layout com Menu Lateral:** Navegação ágil por sidebar com identificação dinâmica do usuário logado (nome, grupo/função e botão de logout).
-4. **Cadastro e Gestão de Colaboradores:** Controle de operários por frente de trabalho (alvenaria, estruturas, armação, elétrica) com validação de matrícula única.
-5. **Catálogo e Estoque de EPIs:** Gestão de equipamentos com número de Certificado de Aprovação (C.A.), controle quantitativo no almoxarifado e validade.
-6. **Controle de EPI / Cautelas e Devoluções:** Ciclo completo de vida dos equipamentos (Emprestado, Fornecido, Devolvido, Danificado, Perdido), validação de devolução futura e filtros combinados do tipo **AND**.
-
----
-
 ## 🔐 Autenticação, Controle de Usuários e Permissões
 
 ### 1. Sistema de Login e Logout
