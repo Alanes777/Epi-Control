@@ -2,8 +2,15 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Página Inicial
+    # Autenticação e Controle de Acesso
+    path('login/', views.user_login, name='login'),
+    path('logout/', views.user_logout, name='logout'),
+
+    # Página Inicial (Dashboard)
     path('', views.home, name='home'),
+
+    # Controle de Usuários
+    path('usuarios/', views.usuario_list, name='usuario_list'),
 
     # Módulo de Colaboradores
     path('colaboradores/', views.colaborador_list, name='colaborador_list'),

@@ -3,6 +3,44 @@ from django.conf import settings
 from django.utils import timezone
 
 
+class Setor(models.Model):
+    """
+    Entidade Setor: representa as frentes de trabalho ou setores da construtora
+    (ex: Canteiro de Obras, Alvenaria, Armação, Instalações Elétricas, Acabamento).
+    Utilizado para demonstrar o controle de acesso e permissões granulares
+    (adicionar, editar, visualizar e excluir) via Grupos no Django Admin.
+    """
+    nome = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Nome do Setor",
+        help_text="Nome do setor ou frente de trabalho."
+    )
+    descricao = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descrição do Setor",
+        help_text="Atividades e características deste setor."
+    )
+    responsavel = models.CharField(
+        max_length=150,
+        blank=True,
+        null=True,
+        verbose_name="Responsável pelo Setor",
+        help_text="Encarregado, mestre de obras ou gestor do setor."
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Cadastrado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+
+    class Meta:
+        verbose_name = "Setor"
+        verbose_name_plural = "Setores"
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class Colaborador(models.Model):
     """
     Entidade Colaborador: representa os operários e funcionários da empresa de construção civil

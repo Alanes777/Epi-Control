@@ -1,13 +1,103 @@
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User, Group
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.db.models import Q
 from django.utils import timezone
-from .models import Colaborador, EPI, Emprestimo, ItemEmprestimo
+from .models import Setor, Colaborador, EPI, Emprestimo, ItemEmprestimo
 from .forms import ColaboradorForm, EPIForm, EmprestimoCreateForm, EmprestimoUpdateForm
 
 
+# ========================================================
+# MÓDULO DE AUTENTICAÇÃO E CONTROLE DE ACESSO
+# ========================================================
+
+def user_login(request):
+    """
+    Tela de Autenticação / Login no EPI Control.
+    Permite o acesso ao sistema mediante credenciais válidas.
+    Redireciona para a página solicitada previamente (next) ou para a página inicial.
+    """
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    next_url = request.GET.get('next') or request.POST.get('next') or 'home'
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            nome_exibicao = user.get_full_name() or user.username
+            messages.success(request, f"Seja bem-vindo(a), {nome_exibicao}!")
+
+            # Valida segurança da URL de redirecionamento
+            if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect('home')
+        else:
+            messages.error(
+                request,
+                "Usuário ou senha inválidos. Por favor, verifique suas credenciais e tente novamente."
+            )
+    else:
+        form = AuthenticationForm(request)
+
+    context = {
+        'form': form,
+        'next': next_url,
+    }
+    return render(request, 'auth/login.html', context)
+
+
+def user_logout(request):
+    """
+    Encerra a sessão do usuário atual (Logout) e redireciona para a tela de login.
+    """
+    if request.user.is_authenticated:
+        nome = request.user.get_full_name() or request.user.username
+        auth_logout(request)
+        messages.info(request, f"Sessão encerrada com sucesso. Até logo, {nome}!")
+    return redirect('login')
+
+
+@login_required
+def usuario_list(request):
+    """
+    Controle de Usuários do Sistema.
+    Lista todos os usuários cadastrados, seus perfis/grupos de acesso,
+    status de ativação e atalho direto para gestão detalhada no Django Admin.
+    """
+    termo_busca = request.GET.get('q', '').strip()
+
+    usuarios = User.objects.prefetch_related('groups').all().order_by('username')
+    if termo_busca:
+        usuarios = usuarios.filter(
+            Q(username__icontains=termo_busca) |
+            Q(first_name__icontains=termo_busca) |
+            Q(last_name__icontains=termo_busca) |
+            Q(email__icontains=termo_busca)
+        )
+
+    context = {
+        'usuarios': usuarios,
+        'termo_busca': termo_busca,
+        'total_usuarios': usuarios.count(),
+        'total_grupos': Group.objects.count(),
+    }
+    return render(request, 'usuarios/usuario_list.html', context)
+
+
+# ========================================================
+# PÁGINA INICIAL (DASHBOARD)
+# ========================================================
+
+@login_required
 def home(request):
     """
     Página Inicial do EPI Control (Construção Civil).
@@ -17,12 +107,14 @@ def home(request):
     total_epis = EPI.objects.count()
     total_emprestimos = Emprestimo.objects.count()
     emprestimos_ativos = Emprestimo.objects.filter(status='EMPRESTADO').count()
+    total_setores = Setor.objects.count()
 
     context = {
         'total_colaboradores': total_colaboradores,
         'total_epis': total_epis,
         'total_emprestimos': total_emprestimos,
         'emprestimos_ativos': emprestimos_ativos,
+        'total_setores': total_setores,
     }
     return render(request, 'home.html', context)
 
@@ -31,6 +123,7 @@ def home(request):
 # MÓDULO DE COLABORADORES (CRUD COMPLETO)
 # ========================================================
 
+@login_required
 def colaborador_list(request):
     """
     Pesquisa e Listagem de Colaboradores.
@@ -51,6 +144,7 @@ def colaborador_list(request):
     return render(request, 'colaboradores/colaborador_list.html', context)
 
 
+@login_required
 def colaborador_create(request):
     """
     Cadastro de Colaboradores.
@@ -83,6 +177,7 @@ def colaborador_create(request):
     return render(request, 'colaboradores/colaborador_form.html', context)
 
 
+@login_required
 def colaborador_update(request, pk):
     """
     Edição de Colaboradores.
@@ -117,6 +212,7 @@ def colaborador_update(request, pk):
 
 
 @require_POST
+@login_required
 def colaborador_delete(request, pk):
     """
     Exclusão de Colaboradores.
@@ -145,18 +241,18 @@ def colaborador_delete(request, pk):
 # MÓDULO DE EQUIPAMENTOS (EPIs)
 # ========================================================
 
+@login_required
 def epi_list(request):
     """
     Pesquisa e Listagem de Equipamentos de Proteção Individual.
-    Permite consultar por nome ou número do C.A. no banco de dados.
+    Permite localizar EPIs pelo nome ou C.A.
     """
     termo_busca = request.GET.get('q', '').strip()
 
     if termo_busca:
         epis = EPI.objects.filter(
             Q(nome__icontains=termo_busca) |
-            Q(certificado_aprovacao__icontains=termo_busca) |
-            Q(descricao__icontains=termo_busca)
+            Q(certificado_aprovacao__icontains=termo_busca)
         )
     else:
         epis = EPI.objects.all()
@@ -169,27 +265,27 @@ def epi_list(request):
     return render(request, 'equipamentos/epi_list.html', context)
 
 
+@login_required
 def epi_create(request):
     """
-    Cadastro de Equipamentos de Proteção Individual.
-    Exibe mensagem de sucesso ou falha no momento da criação.
-    Após o cadastro, o sistema permanece na tela de cadastro.
+    Cadastro de Equipamentos (EPIs).
+    Ao cadastrar, exibe mensagem de sucesso ou falha.
+    Após o cadastro com sucesso, o sistema permanece na tela de cadastro.
     """
     if request.method == 'POST':
         form = EPIForm(request.POST)
         if form.is_valid():
             epi = form.save()
-            ca = f" (C.A. {epi.certificado_aprovacao})" if epi.certificado_aprovacao else ""
             messages.success(
                 request,
-                f"Equipamento '{epi.nome}'{ca} cadastrado com sucesso no almoxarifado!"
+                f"Equipamento '{epi.nome}' cadastrado com sucesso no almoxarifado!"
             )
-            # Permanece na tela de cadastro permitindo novos registros
+            # Permanece na tela de cadastro para novos registros
             return redirect('epi_create')
         else:
             messages.error(
                 request,
-                "Falha ao cadastrar equipamento. Verifique os campos destacados abaixo."
+                "Falha ao cadastrar o equipamento. Por favor, verifique os erros destacados abaixo."
             )
     else:
         form = EPIForm()
@@ -202,10 +298,11 @@ def epi_create(request):
     return render(request, 'equipamentos/epi_form.html', context)
 
 
+@login_required
 def epi_update(request, pk):
     """
-    Edição de Equipamentos de Proteção Individual.
-    Exibe tela parecida com a de cadastro carregando as informações para atualização.
+    Edição de Equipamentos (EPIs).
+    Permite atualizar dados e estoque de um EPI já cadastrado.
     """
     epi = get_object_or_404(EPI, pk=pk)
 
@@ -221,7 +318,7 @@ def epi_update(request, pk):
         else:
             messages.error(
                 request,
-                "Falha ao atualizar o equipamento. Corrija os erros destacados no formulário."
+                "Falha ao salvar as alterações do equipamento. Corrija os erros destacados."
             )
     else:
         form = EPIForm(instance=epi)
@@ -236,6 +333,7 @@ def epi_update(request, pk):
 
 
 @require_POST
+@login_required
 def epi_delete(request, pk):
     """
     Exclusão de Equipamento (EPI).
@@ -263,6 +361,7 @@ def epi_delete(request, pk):
 # MÓDULO DE CONTROLE DE EPI (EMPRÉSTIMOS E DEVOLUÇÕES)
 # ========================================================
 
+@login_required
 def emprestimo_list(request):
     """
     Pesquisa e Listagem de Empréstimos de EPIs com Filtro AND.
@@ -325,6 +424,7 @@ def emprestimo_list(request):
     return render(request, 'emprestimos/emprestimo_list.html', context)
 
 
+@login_required
 def relatorio_list(request):
     """
     Tela de Relatórios de Controle de EPIs (Requisito Específico).
@@ -398,6 +498,7 @@ def relatorio_list(request):
     return render(request, 'relatorios/relatorio_list.html', context)
 
 
+@login_required
 def emprestimo_create(request):
     """
     Cadastro / Registro de Novo Empréstimo de EPI.
@@ -423,6 +524,7 @@ def emprestimo_create(request):
                 colaborador=colaborador,
                 epi=epi,
                 quantidade=quantidade,
+                usuario_responsavel=request.user,
                 data_emprestimo=data_emprestimo,
                 data_prevista_devolucao=data_prevista_devolucao,
                 status=status,
@@ -461,6 +563,7 @@ def emprestimo_create(request):
     return render(request, 'emprestimos/emprestimo_form.html', context)
 
 
+@login_required
 def emprestimo_update(request, pk):
     """
     Atualização de Status do Empréstimo de EPI.
@@ -508,6 +611,7 @@ def emprestimo_update(request, pk):
 
 
 @require_POST
+@login_required
 def emprestimo_delete(request, pk):
     """
     Exclusão de Registro de Empréstimo.

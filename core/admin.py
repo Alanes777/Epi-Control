@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import Colaborador, EPI, Emprestimo, ItemEmprestimo
+from .models import Setor, Colaborador, EPI, Emprestimo, ItemEmprestimo
+
+
+@admin.register(Setor)
+class SetorAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'responsavel', 'criado_em', 'atualizado_em')
+    search_fields = ('nome', 'responsavel', 'descricao')
+    list_filter = ('criado_em',)
+    ordering = ('nome',)
 
 
 class ItemEmprestimoInline(admin.TabularInline):

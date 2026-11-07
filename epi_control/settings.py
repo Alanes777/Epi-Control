@@ -32,6 +32,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Middleware customizado: protege todas as rotas exigindo autenticação (exceto login, logout, admin e static)
+    'core.middleware.AuthRequiredMiddleware',
 ]
 
 ROOT_URLCONF = 'epi_control.urls'
@@ -98,3 +100,8 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',
     messages.ERROR: 'danger',
 }
+
+# Configurações de Autenticação e Controle de Acesso
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'login'

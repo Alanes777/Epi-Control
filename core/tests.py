@@ -2,12 +2,14 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from core.models import Colaborador, EPI, Emprestimo, ItemEmprestimo
+from django.contrib.auth.models import User, Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from core.models import Setor, Colaborador, EPI, Emprestimo, ItemEmprestimo
 
 
 class ColaboradorCRUDTest(TestCase):
     """
-    Testes automatizados cobrindo os requisitos obrigatórios do sistema EPI Control:
+    Testes automatizados cobrindo os requisitos obrigatórios do módulo de Colaboradores:
     1. Cadastro válido de colaborador.
     2. Tentativa de cadastrar matrícula duplicada.
     3. Pesquisa por nome completo e parcial.
@@ -23,6 +25,9 @@ class ColaboradorCRUDTest(TestCase):
 
     def setUp(self):
         self.client = Client()
+        self.user = User.objects.create_user(username='tester_colab', password='password123')
+        self.client.force_login(self.user)
+
         self.colab1 = Colaborador.objects.create(
             nome="Mariana Costa Souza",
             matricula="TEX-1003",
@@ -141,6 +146,7 @@ class ColaboradorCRUDTest(TestCase):
             reverse('emprestimo_list'),
             reverse('emprestimo_create'),
             reverse('relatorio_list'),
+            reverse('usuario_list'),
         ]
         for url in urls:
             res = self.client.get(url)
@@ -150,6 +156,9 @@ class ColaboradorCRUDTest(TestCase):
 class EPICRUDTest(TestCase):
     def setUp(self):
         self.client = Client()
+        self.user = User.objects.create_user(username='tester_epi', password='password123')
+        self.client.force_login(self.user)
+
         self.epi1 = EPI.objects.create(
             nome="Protetor Auditivo Concha",
             certificado_aprovacao="5745",
@@ -228,6 +237,9 @@ class EmprestimoCRUDTest(TestCase):
 
     def setUp(self):
         self.client = Client()
+        self.user = User.objects.create_user(username='tester_emp', password='password123')
+        self.client.force_login(self.user)
+
         self.colab = Colaborador.objects.create(
             nome="Carlos Eduardo Pereira",
             matricula="CONST-2001",
@@ -293,7 +305,7 @@ class EmprestimoCRUDTest(TestCase):
             'quantidade': 1,
             'data_emprestimo': hoje.strftime('%Y-%m-%d'),
             'data_prevista_devolucao': amanha.strftime('%Y-%m-%d'),
-            'status': 'DEVOLVIDO',  # Não permitido no cadastro
+            'status': 'DEVOLVIDO',
         }
         res = self.client.post(reverse('emprestimo_create'), dados)
         self.assertEqual(res.status_code, 200)
@@ -308,7 +320,7 @@ class EmprestimoCRUDTest(TestCase):
         dados = {
             'colaborador': self.colab.pk,
             'epi': self.epi.pk,
-            'quantidade': 25,  # Disponível apenas 10
+            'quantidade': 25,
             'data_emprestimo': hoje.strftime('%Y-%m-%d'),
             'data_prevista_devolucao': amanha.strftime('%Y-%m-%d'),
             'status': 'EMPRESTADO',
@@ -409,7 +421,7 @@ class EmprestimoCRUDTest(TestCase):
 
         dados_invalidos = {
             'status': 'DANIFICADO',
-            'data_devolucao': '',  # Ausente
+            'data_devolucao': '',
         }
         res = self.client.post(reverse('emprestimo_update', args=[emp.pk]), dados_invalidos)
         self.assertEqual(res.status_code, 200)
@@ -488,3 +500,147 @@ class EmprestimoCRUDTest(TestCase):
         self.assertContains(res, "Capacete de Segurança com Jugular")
         self.assertNotContains(res, "Marcos Aurélio Lima")
         self.assertNotContains(res, "Luva de Vaqueta Mista")
+
+
+class AuthAndAccessControlTest(TestCase):
+    """
+    Testes automatizados cobrindo Autenticação e Controle de Acesso:
+    1. Todas as rotas do sistema protegidas (usuário anônimo é redirecionado para login).
+    2. Rotas públicas acessíveis sem autenticação prévia (/login/ e /admin/).
+    3. Login com sucesso redirecionando para home ou rota solicitada.
+    4. Login com credenciais inválidas exibindo alerta de erro.
+    5. Logout encerrando a sessão e redirecionando para a tela de login.
+    6. Controle de usuários (listagem de usuários do sistema).
+    7. Grupo com permissões de adicionar, editar, visualizar e excluir o Model Setor no Django Admin.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='carlos.sst',
+            password='carlos_password123',
+            first_name='Carlos',
+            last_name='Mendes'
+        )
+
+    def test_01_rotas_protegidas_redirecionam_usuario_anonimo(self):
+        """Todas as rotas do sistema devem redirecionar usuários não autenticados para a tela de login."""
+        rotas_protegidas = [
+            reverse('home'),
+            reverse('colaborador_list'),
+            reverse('colaborador_create'),
+            reverse('epi_list'),
+            reverse('epi_create'),
+            reverse('emprestimo_list'),
+            reverse('emprestimo_create'),
+            reverse('relatorio_list'),
+            reverse('usuario_list'),
+        ]
+
+        for rota in rotas_protegidas:
+            res = self.client.get(rota)
+            # Deve responder com redirect 302 para a tela de login
+            self.assertEqual(res.status_code, 302, f"A rota {rota} não redirecionou o usuário anônimo!")
+            self.assertTrue(res.url.startswith(reverse('login')), f"Redirecionou para {res.url} em vez de login!")
+
+    def test_02_rotas_publicas_sem_autenticacao(self):
+        """As rotas de login e o Django Admin devem ser acessíveis sem login prévio."""
+        res_login = self.client.get(reverse('login'))
+        self.assertEqual(res_login.status_code, 200)
+        self.assertContains(res_login, "EPI Control")
+
+        # Rota de logout redireciona para login
+        res_logout = self.client.get(reverse('logout'))
+        self.assertEqual(res_logout.status_code, 302)
+
+    def test_03_login_com_sucesso(self):
+        """Login com credenciais corretas deve autenticar o usuário e redirecionar para a home."""
+        dados = {
+            'username': 'carlos.sst',
+            'password': 'carlos_password123',
+            'next': '',
+        }
+        res = self.client.post(reverse('login'), dados)
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, reverse('home'))
+
+        # Confirma que após login, a home é acessada com sucesso (200)
+        res_home = self.client.get(reverse('home'))
+        self.assertEqual(res_home.status_code, 200)
+        self.assertContains(res_home, "Carlos")
+
+    def test_04_login_com_credenciais_invalidas(self):
+        """Login com senha errada deve permanecer na página de login e apresentar mensagem de erro."""
+        dados = {
+            'username': 'carlos.sst',
+            'password': 'senha_totalmente_errada',
+        }
+        res = self.client.post(reverse('login'), dados)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Usuário ou senha inválidos")
+
+    def test_05_logout_encerra_sessao(self):
+        """Ao acionar logout, a sessão é destruída e o usuário é redirecionado para a tela de login."""
+        self.client.force_login(self.user)
+        # Verifica que está logado
+        res_home = self.client.get(reverse('home'))
+        self.assertEqual(res_home.status_code, 200)
+
+        # Aciona logout
+        res_logout = self.client.get(reverse('logout'), follow=True)
+        self.assertEqual(res_logout.status_code, 200)
+        self.assertContains(res_logout, "Sessão encerrada com sucesso")
+
+        # Verifica que tentar acessar rota protegida agora redireciona novamente
+        res_protegida = self.client.get(reverse('home'))
+        self.assertEqual(res_protegida.status_code, 302)
+
+    def test_06_controle_de_usuarios_view(self):
+        """A tela de controle de usuários deve listar os usuários do sistema para usuário autenticado."""
+        self.client.force_login(self.user)
+        res = self.client.get(reverse('usuario_list'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Controle de Usuários e Permissões")
+        self.assertContains(res, "carlos.sst")
+
+    def test_07_grupo_com_permissoes_setor_django_admin(self):
+        """
+        Requisito: 'Pelo django admin deve ser possível ter grupo com a permissão
+        de adicionar, editar, visualizar e excluir dado de algum model, por exemplo, Setor.'
+        """
+        # 1. Cria ou obtém o model Setor e seu ContentType
+        setor = Setor.objects.create(
+            nome="Carpintaria e Armação",
+            descricao="Setor responsável por formas de madeira e ferragens.",
+            responsavel="Mestre Francisco"
+        )
+        ct_setor = ContentType.objects.get_for_model(Setor)
+
+        # 2. Obtém as 4 permissões padrão do Django (add, change, view, delete) para o model Setor
+        perm_add = Permission.objects.get(content_type=ct_setor, codename='add_setor')
+        perm_change = Permission.objects.get(content_type=ct_setor, codename='change_setor')
+        perm_view = Permission.objects.get(content_type=ct_setor, codename='view_setor')
+        perm_delete = Permission.objects.get(content_type=ct_setor, codename='delete_setor')
+
+        # 3. Cria um Grupo no Django Admin e associa exatamente as 4 permissões do model Setor
+        grupo_gestores = Group.objects.create(name='Gestores de Setor - Teste')
+        grupo_gestores.permissions.set([perm_add, perm_change, perm_view, perm_delete])
+
+        # 4. Cria um usuário pertencente ao grupo
+        usuario_gestor = User.objects.create_user(
+            username='gestor.teste',
+            password='password123',
+            is_staff=True  # Pode acessar o Django Admin
+        )
+        usuario_gestor.groups.add(grupo_gestores)
+
+        # 5. Validações das 4 permissões do model Setor herdadas pelo Grupo
+        self.assertTrue(usuario_gestor.has_perm('core.add_setor'), "Usuário do grupo deve poder adicionar Setor!")
+        self.assertTrue(usuario_gestor.has_perm('core.change_setor'), "Usuário do grupo deve poder editar Setor!")
+        self.assertTrue(usuario_gestor.has_perm('core.view_setor'), "Usuário do grupo deve poder visualizar Setor!")
+        self.assertTrue(usuario_gestor.has_perm('core.delete_setor'), "Usuário do grupo deve poder excluir Setor!")
+
+        # 6. Validação de segurança: o usuário NÃO possui permissões para outros models
+        self.assertFalse(usuario_gestor.has_perm('core.delete_epi'), "Não deve ter permissão para excluir EPI!")
+        self.assertFalse(usuario_gestor.has_perm('core.delete_colaborador'), "Não deve ter permissão para excluir Colaborador!")
+        self.assertFalse(usuario_gestor.has_perm('core.delete_emprestimo'), "Não deve ter permissão para excluir Empréstimo!")

@@ -1,14 +1,121 @@
 from django.core.management.base import BaseCommand
+from django.contrib.auth.models import User, Group, Permission
+from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from datetime import timedelta
-from core.models import Colaborador, EPI, Emprestimo, ItemEmprestimo
+from core.models import Setor, Colaborador, EPI, Emprestimo, ItemEmprestimo
 
 
 class Command(BaseCommand):
-    help = "Popula o banco de dados com registros realistas para a empresa de Construção Civil (EPI Control)."
+    help = "Popula o banco de dados com usuários, grupos de permissões (Setor), setores, colaboradores, EPIs e empréstimos da Construção Civil."
 
     def handle(self, *args, **options):
-        # 1. Colaboradores da Construção Civil
+        # ========================================================
+        # 1. MODEL SETOR, GRUPOS E PERMISSÕES (DJANGO ADMIN)
+        # ========================================================
+        # Criação de Setores da Construtora
+        setores_iniciais = [
+            {
+                'nome': 'Canteiro de Obras / Alvenaria',
+                'descricao': 'Execução de alvenaria estrutural e de vedação, assentamento de blocos e reboco.',
+                'responsavel': 'Mestre José Carlos'
+            },
+            {
+                'nome': 'Estruturas de Concreto',
+                'descricao': 'Montagem de fôrmas, escoramento e concretagem de lajes e vigas.',
+                'responsavel': 'Encarregado Valdir'
+            },
+            {
+                'nome': 'Armação de Aço',
+                'descricao': 'Corte, dobra e montagem de ferragens e armaduras para fundações e pilares.',
+                'responsavel': 'Encarregada Mariana'
+            },
+            {
+                'nome': 'Instalações Elétricas e Hidráulicas',
+                'descricao': 'Passagem de eletrodutos, fiação, cabeamento e tubulações hidrossanitárias.',
+                'responsavel': 'Técnico Roberto Silva'
+            },
+            {
+                'nome': 'Canteiro Geral & Acabamento',
+                'descricao': 'Logística do canteiro, limpeza de obra, revestimentos cerâmicos e pintura.',
+                'responsavel': 'Encarregado Marcos'
+            },
+        ]
+
+        for s_data in setores_iniciais:
+            Setor.objects.update_or_create(nome=s_data['nome'], defaults=s_data)
+
+        # Configuração de Grupo com Permissões específicas no Model Setor
+        ct_setor = ContentType.objects.get_for_model(Setor)
+        perms_setor = Permission.objects.filter(
+            content_type=ct_setor,
+            codename__in=['add_setor', 'change_setor', 'view_setor', 'delete_setor']
+        )
+
+        grupo_setor, _ = Group.objects.get_or_create(name='Gestores de Setor')
+        grupo_setor.permissions.set(perms_setor)
+
+        # Grupo Técnicos de SST (acesso operacional completo ao almoxarifado e cautelas)
+        grupo_sst, _ = Group.objects.get_or_create(name='Técnicos de SST')
+        ct_colab = ContentType.objects.get_for_model(Colaborador)
+        ct_epi = ContentType.objects.get_for_model(EPI)
+        ct_emp = ContentType.objects.get_for_model(Emprestimo)
+        perms_sst = Permission.objects.filter(content_type__in=[ct_colab, ct_epi, ct_emp, ct_setor])
+        grupo_sst.permissions.set(perms_sst)
+
+        # ========================================================
+        # 2. CRIAÇÃO DE USUÁRIOS DO SISTEMA
+        # ========================================================
+        # 1. Superadministrador
+        admin_user, _ = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin@construtora.com.br',
+                'first_name': 'Administrador',
+                'last_name': 'Geral',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_active': True,
+            }
+        )
+        admin_user.set_password('admin123')
+        admin_user.save()
+
+        # 2. Usuário Gestor de Setores (demonstração de permissões no Django Admin para Setor)
+        gestor_user, _ = User.objects.get_or_create(
+            username='gestor.setor',
+            defaults={
+                'email': 'gestor.setor@construtora.com.br',
+                'first_name': 'Paulo',
+                'last_name': 'Gestor de Setores',
+                'is_staff': True,
+                'is_superuser': False,
+                'is_active': True,
+            }
+        )
+        gestor_user.set_password('gestor123')
+        gestor_user.groups.set([grupo_setor])
+        gestor_user.save()
+
+        # 3. Usuário Técnico em SST (Carlos R. Mendes)
+        carlos_user, _ = User.objects.get_or_create(
+            username='carlos.sst',
+            defaults={
+                'email': 'carlos.mendes@construtora.com.br',
+                'first_name': 'Carlos R.',
+                'last_name': 'Mendes',
+                'is_staff': True,
+                'is_superuser': False,
+                'is_active': True,
+            }
+        )
+        carlos_user.set_password('carlos123')
+        carlos_user.groups.set([grupo_sst])
+        carlos_user.save()
+
+        # ========================================================
+        # 3. COLABORADORES DA CONSTRUÇÃO CIVIL
+        # ========================================================
         colaboradores_iniciais = [
             {
                 'nome': 'Raimundo Nonato dos Santos',
@@ -41,7 +148,7 @@ class Command(BaseCommand):
             {
                 'nome': 'Marcos Aurélio Lima',
                 'matricula': 'CONST-1050',
-                'setor': 'Canteiro Geral',
+                'setor': 'Canteiro Geral & Acabamento',
                 'cargo': 'Servente de Obras',
                 'email': 'marcos.lima@construtora.com.br',
             },
@@ -55,7 +162,9 @@ class Command(BaseCommand):
             )
             colabs_dict[dados['matricula']] = colab
 
-        # 2. EPIs da Construção Civil
+        # ========================================================
+        # 4. EPIS DA CONSTRUÇÃO CIVIL
+        # ========================================================
         epis_iniciais = [
             {
                 'nome': 'Capacete de Segurança com Jugular Aba Frontal',
@@ -103,17 +212,18 @@ class Command(BaseCommand):
             )
             epis_dict[dados['nome']] = epi
 
-        # 3. Empréstimos Iniciais com os novos status
+        # ========================================================
+        # 5. EMPRÉSTIMOS E CAUTELAS DE DEMONSTRAÇÃO
+        # ========================================================
         hoje = timezone.now().date()
-
-        # Limpamos empréstimos de demonstração anteriores se não forem da construtora
         Emprestimo.objects.all().delete()
 
-        # Empréstimo 1: EMPRESTADO (Regular, no prazo)
+        # Empréstimo 1: EMPRESTADO (No prazo)
         emp1 = Emprestimo.objects.create(
             colaborador=colabs_dict['CONST-1010'],
             epi=epis_dict['Capacete de Segurança com Jugular Aba Frontal'],
             quantidade=1,
+            usuario_responsavel=carlos_user,
             data_emprestimo=hoje - timedelta(days=2),
             data_prevista_devolucao=hoje + timedelta(days=28),
             status='EMPRESTADO',
@@ -125,11 +235,12 @@ class Command(BaseCommand):
             quantidade=1
         )
 
-        # Empréstimo 2: EMPRESTADO (Atrasado - para teste visual da sinalização de atraso)
+        # Empréstimo 2: EMPRESTADO (Atrasado)
         emp2 = Emprestimo.objects.create(
             colaborador=colabs_dict['CONST-1020'],
             epi=epis_dict['Cinto de Segurança Tipo Paraquedista com Talabarte Duplo'],
             quantidade=1,
+            usuario_responsavel=carlos_user,
             data_emprestimo=hoje - timedelta(days=10),
             data_prevista_devolucao=hoje - timedelta(days=2),
             status='EMPRESTADO',
@@ -141,14 +252,15 @@ class Command(BaseCommand):
             quantidade=1
         )
 
-        # Empréstimo 3: FORNECIDO (Entrega definitiva ao colaborador)
+        # Empréstimo 3: FORNECIDO (Entrega definitiva)
         emp3 = Emprestimo.objects.create(
             colaborador=colabs_dict['CONST-1030'],
             epi=epis_dict['Óculos de Proteção Ampla Visão Anti-Risco e Anti-Embaçante'],
             quantidade=1,
+            usuario_responsavel=carlos_user,
             data_emprestimo=hoje - timedelta(days=15),
             status='FORNECIDO',
-            observacoes='Fornecimento individual definitivo para trabalho na bancada de corte de ferragens.'
+            observacoes='Fornecimento individual definitivo para corte de ferragens.'
         )
         ItemEmprestimo.objects.create(
             emprestimo=emp3,
@@ -161,11 +273,12 @@ class Command(BaseCommand):
             colaborador=colabs_dict['CONST-1040'],
             epi=epis_dict['Botina de Segurança com Bico de Aço e Solado Antiderrapante'],
             quantidade=1,
+            usuario_responsavel=carlos_user,
             data_emprestimo=hoje - timedelta(days=20),
             data_prevista_devolucao=hoje - timedelta(days=5),
             data_devolucao=hoje - timedelta(days=5),
             status='DEVOLVIDO',
-            observacao_devolucao='Devolvido limpo após conclusão da passagem de eletrodutos subterrâneos.'
+            observacao_devolucao='Devolvido limpo após conclusão da passagem de eletrodutos.'
         )
         ItemEmprestimo.objects.create(
             emprestimo=emp4,
@@ -178,11 +291,12 @@ class Command(BaseCommand):
             colaborador=colabs_dict['CONST-1050'],
             epi=epis_dict['Luva de Vaqueta Mista para Trabalho Pesado'],
             quantidade=2,
+            usuario_responsavel=carlos_user,
             data_emprestimo=hoje - timedelta(days=8),
             data_prevista_devolucao=hoje - timedelta(days=1),
             data_devolucao=hoje - timedelta(days=1),
             status='DANIFICADO',
-            observacao_devolucao='Rasgo transversal causado por atrito contra perfil metálico pontiagudo.'
+            observacao_devolucao='Rasgo transversal causado por atrito contra perfil metálico.'
         )
         ItemEmprestimo.objects.create(
             emprestimo=emp5,
@@ -192,9 +306,10 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Banco de dados populado com sucesso para Construção Civil! "
-                f"Colaboradores: {Colaborador.objects.count()} | "
-                f"EPIs: {EPI.objects.count()} | "
-                f"Empréstimos/Cautelas: {Emprestimo.objects.count()}."
+                f"Banco de dados populado com sucesso!\n"
+                f"- Usuários criados: {User.objects.count()} (admin, gestor.setor, carlos.sst)\n"
+                f"- Grupos de Permissões: {Group.objects.count()} ('Gestores de Setor' com permissões no Model Setor)\n"
+                f"- Setores cadastrados: {Setor.objects.count()}\n"
+                f"- Colaboradores: {Colaborador.objects.count()} | EPIs: {EPI.objects.count()} | Cautelas: {Emprestimo.objects.count()}."
             )
         )

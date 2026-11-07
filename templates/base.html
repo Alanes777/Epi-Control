@@ -34,24 +34,39 @@
             </a>
         </div>
 
-        <!-- Exibição Estática do Nome e Foto do Usuário Logado (Requisito da Tela Base) -->
+        <!-- Exibição Dinâmica do Usuário Logado e Ação de Logout -->
         <div class="user-profile-box">
             <div class="d-flex align-items-center gap-3">
-                <!-- Foto do Usuário Logado -->
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
-                     alt="Foto de Carlos Roberto Mendes"
-                     class="user-avatar-img">
-                <div class="overflow-hidden">
-                    <div class="fw-bold text-white text-truncate" style="font-size: 0.88rem;" title="Carlos Roberto Mendes">
-                        Carlos R. Mendes
+                <!-- Avatar do Usuário -->
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 44px; height: 44px; min-width: 44px; font-size: 1.1rem;">
+                    {{ request.user.username|first|upper }}
+                </div>
+                <div class="overflow-hidden flex-grow-1">
+                    <div class="fw-bold text-white text-truncate" style="font-size: 0.88rem;" title="{{ request.user.get_full_name|default:request.user.username }}">
+                        {{ request.user.get_full_name|default:request.user.username }}
                     </div>
-                    <div class="text-secondary small text-truncate" style="font-size: 0.75rem;" title="Técnico de Segurança do Trabalho">
-                        Técnico em SST
+                    <div class="text-secondary small text-truncate" style="font-size: 0.74rem;">
+                        {% if request.user.is_superuser %}
+                            Administrador Geral
+                        {% elif request.user.groups.all %}
+                            {{ request.user.groups.all.0.name }}
+                        {% elif request.user.is_staff %}
+                            Equipe Técnica (Staff)
+                        {% else %}
+                            Usuário Conectado
+                        {% endif %}
                     </div>
                     <span class="badge bg-success-subtle text-success border border-success-subtle mt-1" style="font-size: 0.65rem;">
-                        <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Usuário Ativo
+                        <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i>Conectado
                     </span>
                 </div>
+            </div>
+            <!-- Linha com nome de usuário e botão de logout -->
+            <div class="mt-2 pt-2 border-top border-secondary-subtle d-flex justify-content-between align-items-center">
+                <small class="text-secondary font-monospace" style="font-size: 0.72rem;">@{{ request.user.username }}</small>
+                <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.74rem;" title="Encerrar sessão no sistema">
+                    <i class="bi bi-box-arrow-right me-1"></i>Sair
+                </a>
             </div>
         </div>
 
@@ -88,6 +103,14 @@
             <a class="nav-link {% if request.resolver_match.url_name == 'relatorio_list' %}active{% endif %}" href="{% url 'relatorio_list' %}">
                 <i class="bi bi-file-earmark-bar-graph me-2"></i> Tela de Relatórios (AND)
             </a>
+
+            <div class="sidebar-heading">Acesso e Segurança</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'usuario_list' %}active{% endif %}" href="{% url 'usuario_list' %}">
+                <i class="bi bi-people-gear me-2"></i> Controle de Usuários
+            </a>
+            <a class="nav-link" href="/admin/" target="_blank">
+                <i class="bi bi-shield-lock me-2 text-warning"></i> Django Admin
+            </a>
         </nav>
 
         <!-- Rodapé da Sidebar -->
@@ -111,13 +134,16 @@
             <!-- Usuário Mobile -->
             <div class="user-profile-box my-3">
                 <div class="d-flex align-items-center gap-3">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80"
-                         alt="Foto de Carlos Roberto Mendes"
-                         class="user-avatar-img">
-                    <div>
-                        <div class="fw-bold text-white">Carlos R. Mendes</div>
-                        <div class="text-secondary small">Técnico em SST</div>
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; min-width: 40px;">
+                        {{ request.user.username|first|upper }}
                     </div>
+                    <div class="overflow-hidden flex-grow-1">
+                        <div class="fw-bold text-white text-truncate">{{ request.user.get_full_name|default:request.user.username }}</div>
+                        <div class="text-secondary small font-monospace">@{{ request.user.username }}</div>
+                    </div>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm" title="Sair">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </a>
                 </div>
             </div>
 
@@ -134,6 +160,10 @@
                 <a class="nav-link" href="{% url 'emprestimo_list' %}"><i class="bi bi-arrow-left-right me-2"></i> Empréstimos & Devoluções</a>
                 <a class="nav-link" href="{% url 'emprestimo_create' %}"><i class="bi bi-clipboard-plus me-2"></i> Registrar Empréstimo</a>
                 <a class="nav-link" href="{% url 'relatorio_list' %}"><i class="bi bi-file-earmark-bar-graph me-2"></i> Tela de Relatórios (AND)</a>
+                <div class="sidebar-heading">Acesso e Segurança</div>
+                <a class="nav-link" href="{% url 'usuario_list' %}"><i class="bi bi-people-gear me-2"></i> Controle de Usuários</a>
+                <a class="nav-link" href="/admin/" target="_blank"><i class="bi bi-shield-lock me-2 text-warning"></i> Django Admin</a>
+                <a class="nav-link text-danger mt-3" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i> Encerrar Sessão (Sair)</a>
             </nav>
         </div>
     </div>
@@ -156,11 +186,14 @@
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-light text-secondary border d-none d-md-inline">
-                    <i class="bi bi-shield-check text-success me-1"></i> Auditoria de Segurança do Trabalho
+                <span class="text-secondary small d-none d-md-inline">
+                    Olá, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
                 </span>
-                <a href="{% url 'emprestimo_create' %}" class="btn btn-sm btn-primary">
+                <a href="{% url 'emprestimo_create' %}" class="btn btn-sm btn-primary d-none d-sm-inline-flex align-items-center">
                     <i class="bi bi-plus-lg me-1"></i> Novo Empréstimo
+                </a>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center" title="Sair do sistema">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sair
                 </a>
             </div>
         </header>
